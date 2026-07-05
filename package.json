@@ -1,0 +1,13 @@
+{
+  "name": "casambi-visualizer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Casambi Visualizer — browser-based interactive lighting visualization with real Casambi Cloud API integration.",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  }
+}

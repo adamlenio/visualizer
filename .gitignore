@@ -1,0 +1,13 @@
+node_modules
+.vercel
+.env
+.env.local
+.DS_Store
+*.log
+
+# KeyShot render outputs — large image files, not part of the web app
+renders/
+
+# Python bytecode from the render scripts
+__pycache__/
+*.pyc
