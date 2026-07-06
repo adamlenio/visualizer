@@ -55,10 +55,6 @@
   .hero .cta-row{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
   .hero .note{margin-top:18px;font-size:13.5px;color:rgba(255,255,255,.5)}
   .mock{border-radius:20px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1)}
-  .heroimg{display:block;position:relative;border-radius:18px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.08)}
-  .heroimg img{width:100%;display:block;transition:transform .5s ease}
-  .heroimg:hover img{transform:scale(1.03)}
-  .heroimg .heroplay{position:absolute;left:16px;bottom:14px;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);color:#fff;font-size:13px;font-weight:600;padding:8px 15px;border-radius:20px}
   .mock-top{display:flex;gap:6px;padding:11px 14px;background:#0f0f11}
   .mock-top i{width:11px;height:11px;border-radius:50%;background:#2f2f34;display:block}
   .mock-body{display:grid;grid-template-columns:118px 1fr;height:300px;background:#141416}
@@ -176,7 +172,7 @@
       <a href="#pros">For professionals</a>
       <a href="#connect">Find a rep</a>
     </nav>
-    <a class="btn btn-primary" href="office.html">Launch Office demo</a>
+    <a class="btn btn-primary" href="#hero">Launch Office demo</a>
   </div>
 </header>
 
@@ -190,15 +186,22 @@
         set groups, build scenes, tune color and brightness on every luminaire. No hardware, no guesswork.
         Just your space, lit the way you imagine it.</p>
       <div class="cta-row">
-        <a class="btn btn-primary" href="office.html">Try the Office demo →</a>
+        <a class="btn btn-primary" href="https://visualizer-lenio1.vercel.app">Try the Office demo →</a>
         <a class="btn btn-ghost" href="#environments">Explore environments</a>
       </div>
       <p class="note">One environment live today. Many more on the way.</p>
     </div>
-    <a class="heroimg" href="office.html">
-      <img src="assets/homepage_hero.jpg" alt="Casambi Visualizer — interactive Office">
-      <span class="heroplay">Open the live Office &rarr;</span>
-    </a>
+    <div class="mock">
+      <div class="mock-top"><i></i><i></i><i></i></div>
+      <div class="mock-body">
+        <div class="mock-phone">
+          <div class="mp-title">◆ Casambi</div>
+          <div class="mp-tiles"><span class="on"></span><span></span><span class="on"></span><span></span>
+            <span></span><span class="on"></span></div>
+        </div>
+        <div class="mock-room"></div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -220,8 +223,8 @@
         adding new verticals continuously — each one a place to experience Casambi in context.</p>
     </div>
     <div class="envs">
-      <a class="env" href="office.html">
-        <div class="thumb t-office" style="background:url(assets/homepage_hero.jpg) center/cover"><span class="badge badge-live">● Live now</span></div>
+      <a class="env" href="https://visualizer-lenio1.vercel.app">
+        <div class="thumb t-office"><span class="badge badge-live">● Live now</span></div>
         <div class="body"><h3>Office</h3><p>Workstations, downlights, conference — full RGB &amp; tunable white.</p></div>
       </a>
       <div class="env">
@@ -410,7 +413,7 @@
     <h2>Start in the Office. Imagine the rest.</h2>
     <p>Experience the full Casambi app on a photoreal room right now — and be first to know as new environments launch.</p>
     <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
-      <a class="btn btn-dark" href="office.html">Launch the Office demo</a>
+      <a class="btn btn-dark" href="https://visualizer-lenio1.vercel.app">Launch the Office demo</a>
       <a class="btn btn-dark" href="#connect" style="background:#1a1205cc">Get launch updates</a>
     </div>
   </div>
