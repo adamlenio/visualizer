@@ -169,7 +169,7 @@
   <!-- ROOM -->
   <div class="room">
     <div class="stage" id="stage">
-      <img class="base" id="base" src="assets/office_full2/base.jpg" alt="">
+      <img class="base" id="base" src="assets/office_full2/base.jpg?v=20260707" alt="">
       <!-- layers injected by JS -->
     </div>
     <div class="roomtag">AD&amp;M Office · live</div>
@@ -297,7 +297,7 @@ const stage=document.getElementById('stage');
 const layerEls={}; // id_channel -> img
 LUMS.forEach(l=>['R','G','B','W'].forEach(c=>{
   const im=document.createElement('img');
-  im.className='layer'; im.src='assets/office_full2/light_'+l.id+'_'+c+'.jpg';
+  im.className='layer'; im.src='assets/office_full2/light_'+l.id+'_'+c+'.jpg?v=20260707';
   im.onerror=()=>{im.dataset.missing='1';};
   stage.appendChild(im); layerEls[l.id+c]=im;
 }));
@@ -497,7 +497,7 @@ function renderLearn(){ const s=LEARN[lstep];
   document.getElementById('l-dots').innerHTML=LEARN.map((_,i)=>'<i class="'+(i===lstep?'on':'')+'"></i>').join(''); }
 
 buildGrid(); buildScenes(); markSel();
-base.addEventListener('load',()=>{ try{document.getElementById('galthumb').style.background='url(assets/office_full2/base.jpg) center/cover';}catch(e){} });
+base.addEventListener('load',()=>{ try{document.getElementById('galthumb').style.background='url(assets/office_full2/base.jpg?v=20260707) center/cover';}catch(e){} });
 render();
 </script>
 <div class="learnov" id="learnov">
