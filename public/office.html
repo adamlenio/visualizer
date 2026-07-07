@@ -24,6 +24,9 @@
   .stage img{position:absolute;top:0;left:0;width:100%;height:auto;display:block}
   .stage img.base{position:relative;z-index:0;filter:brightness(.22)}
   .stage img.layer{z-index:1;mix-blend-mode:screen;opacity:0;transition:opacity .18s linear}
+  .stage.anim img.layer{transition:opacity .32s linear}      /* smooth, low-rate colour drift */
+  .stage.xfade img.layer{transition:opacity .6s ease}         /* gentle scene-to-scene crossfade */
+  .stage.xfade img.base{transition:filter .6s ease}           /* ease the day/night backdrop too */
   .room .daylabel{position:absolute;left:18px;bottom:64px;font-size:12px;color:var(--text3);z-index:5}
   .dayrow{position:absolute;left:18px;bottom:34px;z-index:5;display:flex;align-items:center;gap:10px;width:230px}
   .dayrow input{flex:1}
@@ -444,9 +447,9 @@ function cct2rgb(t){ // 0 warm -> .5 neutral white -> 1 cool
 // ---- SCENES ----
 const SCENES=[
  {name:'All Off',icon:'○',color:'#4a4a4a',apply:()=>set(l=>({on:false,level:0}))},
- // Bright, cool, productive — midday
- {name:'Focus',icon:'☀',color:'#7fb0ef',day:.95,
-   apply:()=>set(l=>({on:true,mode:'white',cct:.9,level:.98}))},
+ // Bright neutral white, productive — midday
+ {name:'Focus',icon:'☀',color:'#e9edf2',day:.95,
+   apply:()=>set(l=>({on:true,mode:'white',cct:.5,level:.98}))},
  // Meeting: neutral white, main room at 65%, conference table kept up
  {name:'Meet',icon:'▣',color:'#cfd6dd',day:.4,
    apply:()=>set(l=>({on:true,mode:'white',cct:.5,
@@ -473,21 +476,31 @@ const POP_PALETTE=[[1,0,.65],[.55,.1,1],[.05,.4,1]]; // magenta -> purple -> blu
 function popLerp(a,b,t){return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];}
 function popColor(t,phase){ const N=POP_PALETTE.length; let p=((((t+phase)%1)+1)%1)*N;
   const i=Math.floor(p), f=p-i; return popLerp(POP_PALETTE[i%N],POP_PALETTE[(i+1)%N],f); }
-function stopAnim(){ if(animTimer){clearInterval(animTimer);animTimer=null;} }
-function startColorPopAnim(){ stopAnim();
-  const T=8000, phase={lin:0,down:0.34,conf:0.67}; // groups a third of the cycle apart
-  animTimer=setInterval(()=>{ const t=performance.now()/T;
-    LUMS.forEach(l=>{ const s=st[l.id]; s.rgb=popColor(t,phase[l.grp]); s.mode='color'; s.sat=1; s.on=true; s.level=.95; });
-    render();
-  },120);
+function stopAnim(){ if(animTimer){clearInterval(animTimer);animTimer=null;}
+  const stg=document.getElementById('stage'); if(stg) stg.classList.remove('anim'); }
+function animFrame(){ const t=performance.now()/8000, phase={lin:0,down:0.34,conf:0.67};
+  LUMS.forEach(l=>{ const rgb=popColor(t,phase[l.grp]), lev=.95; const s=st[l.id];
+    s.rgb=rgb; s.mode='color'; s.sat=1; s.on=true; s.level=lev;
+    // write layer opacities directly — skip full render()/paintTiles for efficiency
+    setL(l.id+'R',lev*rgb[0]); setL(l.id+'G',lev*rgb[1]); setL(l.id+'B',lev*rgb[2]); setL(l.id+'W',0); });
 }
+function startColorPopAnim(){ stopAnim();
+  document.getElementById('stage').classList.add('anim'); // slower CSS crossfade during anim
+  animFrame();
+  // slow tick (~4fps): colour drift is gradual, and fewer recomposites keeps the CPU/GPU cool
+  animTimer=setInterval(()=>{ if(!document.hidden) animFrame(); }, 240);
+}
+document.addEventListener('visibilitychange',()=>{ if(document.hidden) return; if(animTimer) animFrame(); });
 function set(fn){ LUMS.forEach(l=>{const s=fn(l)||{}; st[l.id]={on:true,level:.5,mode:'white',rgb:[1,0,0],sat:1,cct:.5, ...s}; }); }
 function buildScenes(){
   const g=document.getElementById('scenegrid'); g.innerHTML='';
   SCENES.forEach((sc,i)=>{
     const el=document.createElement('div'); el.className='scene';
     el.innerHTML='<div class="sc" style="background:'+sc.color+'">'+sc.icon+'</div><div class="lbl">'+sc.name+'</div>';
-    el.onclick=()=>{stopAnim();sc.apply();
+    el.onclick=()=>{stopAnim();
+      const stg=document.getElementById('stage');
+      if(!sc.anim){ stg.classList.add('xfade'); clearTimeout(stg._xf); stg._xf=setTimeout(()=>stg.classList.remove('xfade'),700); }
+      sc.apply();
       if(sc.day!=null){ daylight=sc.day; const d=document.getElementById('day'); if(d) d.value=Math.round(sc.day*100); }
       activeScene=i;render();
       if(sc.anim) startColorPopAnim();
