@@ -172,7 +172,10 @@
   <!-- ROOM -->
   <div class="room">
     <div class="stage" id="stage">
-      <img class="base" id="base" src="assets/office_full2/base.jpg?v=20260707" alt="">
+      <img class="base" id="base" alt=""
+        srcset="assets/office_1280/base.jpg 1280w, assets/office_full2/base.jpg?v=20260707 2560w"
+        sizes="(max-width:820px) 100vw, 60vw"
+        src="assets/office_full2/base.jpg?v=20260707">
       <!-- layers injected by JS -->
     </div>
     <div class="roomtag">AD&amp;M Office · live</div>
@@ -300,7 +303,11 @@ const stage=document.getElementById('stage');
 const layerEls={}; // id_channel -> img
 LUMS.forEach(l=>['R','G','B','W'].forEach(c=>{
   const im=document.createElement('img');
-  im.className='layer'; im.src='assets/office_full2/light_'+l.id+'_'+c+'.jpg?v=20260707';
+  const _nm='light_'+l.id+'_'+c+'.jpg';
+  im.className='layer';
+  im.srcset='assets/office_1280/'+_nm+' 1280w, assets/office_full2/'+_nm+'?v=20260707 2560w';
+  im.sizes='(max-width:820px) 100vw, 60vw';
+  im.src='assets/office_full2/'+_nm+'?v=20260707';
   im.onerror=()=>{im.dataset.missing='1';};
   stage.appendChild(im); layerEls[l.id+c]=im;
 }));
@@ -486,7 +493,9 @@ function animFrame(){ const t=performance.now()/8000, phase={lin:0,down:0.34,con
 }
 function startColorPopAnim(){ stopAnim();
   document.getElementById('stage').classList.add('anim'); // slower CSS crossfade during anim
-  animFrame();
+  animFrame(); // paint one vivid multi-colour frame regardless
+  // honour reduced-motion (and spare low-power devices): keep it static, no loop
+  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   // slow tick (~4fps): colour drift is gradual, and fewer recomposites keeps the CPU/GPU cool
   animTimer=setInterval(()=>{ if(!document.hidden) animFrame(); }, 240);
 }
