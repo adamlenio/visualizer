@@ -12,7 +12,10 @@
 #   at the end.
 #
 # FARM: setSendToNetwork + SUBMIT_DELAY between jobs (proven reliable).
-# PREREQ: Denoise OFF in the Image tab (scripted renders can't denoise).
+# PREREQ for a CLEAN re-render: Denoise ON in the Image tab AND 'render all layers'
+#   OFF. Denoise conflicts with render-layers output (that was the old error); with
+#   layers off, native KeyShot denoise runs and is far cleaner than post-NLM.
+#   Samples can drop (~384-512) since denoise cleans residual noise -> faster too.
 #
 # MODE:
 #   "test" -> 3 quick passes (linear_1 R, element_5 G, base) to VERIFY isolation
@@ -91,6 +94,8 @@ def submit(path):
     lux.setCamera(CAMERA_NAME)
     opts = lux.getRenderOptions()
     try: opts.setMaxSamplesRendering(SAMPLES)
+    except Exception: pass
+    try: opts.setOutputRenderLayers(False)   # keep layers off so native denoise runs
     except Exception: pass
     opts.setSendToNetwork(True)
     lux.renderImage(path, width=RES_W, height=RES_H, opts=opts, format=lux.RENDER_OUTPUT_PNG)
