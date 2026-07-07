@@ -322,10 +322,10 @@ function render(){
 // ---- HELPERS ----
 function selMembers(){ return sel.type==='group'? GROUPS.find(g=>g.id===sel.id).members : [sel.id]; }
 function selName(){ return sel.type==='group'? GROUPS.find(g=>g.id===sel.id).name : LUMS.find(l=>l.id===sel.id).name; }
-function applyColor(rgb,sat){ selMembers().forEach(id=>{st[id].rgb=rgb.slice();st[id].sat=sat;st[id].mode='color';st[id].on=true;}); document.getElementById('pw').classList.add('on'); render(); }
-function applyCCT(t){ selMembers().forEach(id=>{st[id].cct=t;st[id].mode='white';st[id].on=true;}); document.getElementById('pw').classList.add('on'); render(); }
-function applyLevel(v){ selMembers().forEach(id=>{st[id].level=v;st[id].on=true;}); render(); }
-function applyPower(on){ selMembers().forEach(id=>st[id].on=on); render(); }
+function applyColor(rgb,sat){ stopAnim(); selMembers().forEach(id=>{st[id].rgb=rgb.slice();st[id].sat=sat;st[id].mode='color';st[id].on=true;}); document.getElementById('pw').classList.add('on'); render(); }
+function applyCCT(t){ stopAnim(); selMembers().forEach(id=>{st[id].cct=t;st[id].mode='white';st[id].on=true;}); document.getElementById('pw').classList.add('on'); render(); }
+function applyLevel(v){ stopAnim(); selMembers().forEach(id=>{st[id].level=v;st[id].on=true;}); render(); }
+function applyPower(on){ stopAnim(); selMembers().forEach(id=>st[id].on=on); render(); }
 function rgbCss(rgb,a){return 'rgba('+Math.round(rgb[0]*255)+','+Math.round(rgb[1]*255)+','+Math.round(rgb[2]*255)+','+(a==null?1:a)+')';}
 
 // ---- LUMINAIRE GRID ----
@@ -380,7 +380,7 @@ function openSheet(){ document.getElementById('sh-name').textContent=selName();
   document.getElementById('whiteui').style.display=mo==='white'?'block':'none';
   placeWheel(s0.rgb, s0.sat||0); sheet.classList.add('show'); }
 document.getElementById('sh-x').onclick=()=>sheet.classList.remove('show');
-function setMode(x){ mode=x; document.getElementById('m-color').classList.toggle('on',x==='color');
+function setMode(x){ stopAnim(); mode=x; document.getElementById('m-color').classList.toggle('on',x==='color');
   document.getElementById('m-white').classList.toggle('on',x==='white');
   document.getElementById('colorui').style.display=x==='color'?'block':'none';
   document.getElementById('whiteui').style.display=x==='white'?'block':'none';
@@ -443,21 +443,55 @@ function cct2rgb(t){ // 0 warm -> .5 neutral white -> 1 cool
 
 // ---- SCENES ----
 const SCENES=[
- {name:'All Off',icon:'○',color:'#555',apply:()=>set(l=>({on:false,level:0}))},
- {name:'Focus',icon:'☀',color:'#8ab4e8',apply:()=>set(l=>({on:true,level:.95,rgb:cct2rgb(.8)}))},
- {name:'Warm',icon:'🔥',color:'#e0a24d',apply:()=>set(l=>({on:true,level:.75,rgb:[1,.72,.45]}))},
- {name:'Sunset',icon:'◐',color:'#c76a2e',apply:()=>set(l=>({on:true,level: l.grp==='lin'?.4:.7, rgb: l.grp==='down'?[1,.45,.18]:[1,.6,.3]}))},
- {name:'Relax',icon:'☯',color:'#9b7bb0',apply:()=>set(l=>({on:true,level:.3,rgb:[1,.55,.35]}))},
- {name:'Color Pop',icon:'✷',color:'#7a4fd0',apply:()=>set(l=>({on:true,level:.85, rgb: l.grp==='down'?[.5,.15,1]: l.grp==='conf'?[0,.8,1]:[1,.5,.15]}))}
+ {name:'All Off',icon:'○',color:'#4a4a4a',apply:()=>set(l=>({on:false,level:0}))},
+ // Bright, cool, productive — midday
+ {name:'Focus',icon:'☀',color:'#7fb0ef',day:.95,
+   apply:()=>set(l=>({on:true,mode:'white',cct:.9,level:.98}))},
+ // Meeting: neutral white, main room at 65%, conference table kept up
+ {name:'Meet',icon:'▣',color:'#cfd6dd',day:.4,
+   apply:()=>set(l=>({on:true,mode:'white',cct:.5,
+     level: l.grp==='conf'?.95:.65}))},
+ // Colored dusk, outdoor at 50%, conference OFF, mains dimmed to 40%
+ {name:'Sunset',icon:'◐',color:'#d85f22',day:.5,
+   apply:()=>set(l=>{ if(l.grp==='conf') return {on:false,level:0};
+     return {on:true,mode:'color',sat:.45,level:.4,
+       rgb: l.grp==='down'?[1,.28,.04] : [1,.55,.2]}; })},
+ // Deep, moody violet at low level — linears kept at full
+ {name:'Relax',icon:'☯',color:'#8f4fd6',day:.08,
+   apply:()=>set(l=>({on:true,mode:'color',sat:.375,
+     level: l.grp==='lin'?1:.3,
+     rgb: l.grp==='conf'?[.85,.28,1] : [.58,.2,.98]}))},
+ // Vivid neon tri-color at night — ANIMATED (groups cycle purple/magenta/blue)
+ {name:'Color Pop',icon:'✷',color:'#ec149b',day:0,anim:true,
+   apply:()=>set(l=>({on:true,mode:'color',sat:1,level:.95,
+     rgb: l.grp==='down'?[.05,.4,1] : l.grp==='conf'?[.55,.1,1] : [1,0,.65]}))}
 ];
 let activeScene=-1;
+// ---- COLOR POP ANIMATION (Casambi-style) ----
+let animTimer=null;
+const POP_PALETTE=[[1,0,.65],[.55,.1,1],[.05,.4,1]]; // magenta -> purple -> blue
+function popLerp(a,b,t){return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];}
+function popColor(t,phase){ const N=POP_PALETTE.length; let p=((((t+phase)%1)+1)%1)*N;
+  const i=Math.floor(p), f=p-i; return popLerp(POP_PALETTE[i%N],POP_PALETTE[(i+1)%N],f); }
+function stopAnim(){ if(animTimer){clearInterval(animTimer);animTimer=null;} }
+function startColorPopAnim(){ stopAnim();
+  const T=8000, phase={lin:0,down:0.34,conf:0.67}; // groups a third of the cycle apart
+  animTimer=setInterval(()=>{ const t=performance.now()/T;
+    LUMS.forEach(l=>{ const s=st[l.id]; s.rgb=popColor(t,phase[l.grp]); s.mode='color'; s.sat=1; s.on=true; s.level=.95; });
+    render();
+  },120);
+}
 function set(fn){ LUMS.forEach(l=>{const s=fn(l)||{}; st[l.id]={on:true,level:.5,mode:'white',rgb:[1,0,0],sat:1,cct:.5, ...s}; }); }
 function buildScenes(){
   const g=document.getElementById('scenegrid'); g.innerHTML='';
   SCENES.forEach((sc,i)=>{
     const el=document.createElement('div'); el.className='scene';
     el.innerHTML='<div class="sc" style="background:'+sc.color+'">'+sc.icon+'</div><div class="lbl">'+sc.name+'</div>';
-    el.onclick=()=>{sc.apply();activeScene=i;render();document.querySelectorAll('.scene').forEach((s,j)=>s.classList.toggle('on',j===i));};
+    el.onclick=()=>{stopAnim();sc.apply();
+      if(sc.day!=null){ daylight=sc.day; const d=document.getElementById('day'); if(d) d.value=Math.round(sc.day*100); }
+      activeScene=i;render();
+      if(sc.anim) startColorPopAnim();
+      document.querySelectorAll('.scene').forEach((s,j)=>s.classList.toggle('on',j===i));};
     g.appendChild(el);
   });
 }
@@ -481,7 +515,7 @@ const LEARN=[
  {t:"Welcome to the live Office",b:"This is a photorealistic Casambi visualization. Anything you change in the app on the right updates the room in real time — no hardware required."},
  {t:"Control any luminaire or group",b:"On the Luminaires tab, every circle is a fixture or a group (All, Linear Lights, Downlights, Conference). Tap one to open its controls."},
  {t:"Color, white & brightness",b:"Drag the color wheel to set any color, switch to White to tune warm↔cool, and use Brightness to dim. Groups change all their members at once."},
- {t:"Recall a scene instantly",b:"The Scenes tab holds saved looks — Focus, Warm, Sunset, Relax, Color Pop. Tap one to set the whole room in a single touch."},
+ {t:"Recall a scene instantly",b:"The Scenes tab holds saved looks — Focus, Meet, Sunset, Relax, Color Pop. Tap one to set the whole room in a single touch."},
  {t:"Set the time of day",b:"Use the Daylight slider at the lower-left of the room to move from bright daylight to dusk — see how the lighting reads at any hour."},
  {t:"Bring it to life",b:"Love what you built? Tap “Talk to a Rep” up top and we’ll connect you with a Casambi expert to make it real in your space."}
 ];
