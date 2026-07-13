@@ -569,5 +569,332 @@ render();
     </div>
   </div>
 </div>
+<!-- ==========================================================================
+     CASAMBI VISUALIZER - TRAINING MODE v2 (spotlight tutorials)
+     Retargeted for the LIVE office.html build (Vercel).
+
+     INSTALL: paste this ENTIRE block immediately before </body> in
+     office.html. Nothing else changes. The existing "Learn" nav button is
+     automatically rewired to open the lesson menu (the old 6-step centered
+     tour code stays in the file, harmlessly unused). Delete this block to
+     restore the original behavior exactly.
+
+     Lessons: Meet the Visualizer / Save a Scene / Create a Schedule /
+              Daylight & Sensors
+     Selectors and copy live in the LESSONS object below - the only place
+     you should ever need to edit.
+     ========================================================================== -->
+
+<style>
+#tut2{position:fixed;inset:0;z-index:9000;display:none;font-family:inherit;}
+#tut2.on{display:block;}
+#tut2-block{position:absolute;inset:0;z-index:9001;}
+
+/* spotlight = hole punched in a scrim via giant box-shadow */
+#tut2-spot{position:fixed;z-index:9002;border-radius:14px;
+  box-shadow:0 0 0 9999px rgba(8,8,10,.74);
+  transition:all .45s cubic-bezier(.4,0,.2,1);pointer-events:none;}
+#tut2-ring{position:fixed;z-index:9003;border-radius:16px;border:2px solid #E86524;
+  transition:all .45s cubic-bezier(.4,0,.2,1);pointer-events:none;
+  animation:tut2-pulse 1.7s ease-in-out infinite;}
+@keyframes tut2-pulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(232,101,36,.55);}
+  50%    {box-shadow:0 0 0 8px rgba(232,101,36,0);}
+}
+#tut2-tap{position:fixed;z-index:9004;width:36px;height:36px;margin:-18px 0 0 -18px;
+  border-radius:50%;background:rgba(255,255,255,.9);pointer-events:none;opacity:0;}
+#tut2-tap.go{animation:tut2-tap .95s ease-out infinite;}
+@keyframes tut2-tap{
+  0%  {opacity:0;transform:scale(.35);}
+  35% {opacity:.85;transform:scale(.85);}
+  100%{opacity:0;transform:scale(1.7);}
+}
+
+/* caption card */
+#tut2-card{position:fixed;z-index:9005;width:400px;max-width:calc(100vw - 28px);
+  background:#fff;color:#16161a;border-radius:18px;padding:18px 20px 14px;
+  box-shadow:0 22px 70px rgba(0,0,0,.55);
+  transition:top .45s cubic-bezier(.4,0,.2,1),left .45s cubic-bezier(.4,0,.2,1);}
+#tut2-eyebrow{display:flex;align-items:center;gap:7px;margin-bottom:7px;}
+#tut2-dot{width:7px;height:7px;border-radius:50%;background:#E86524;flex:0 0 7px;}
+#tut2-lesson{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#E86524;}
+#tut2-count{margin-left:auto;font-size:10.5px;font-weight:600;color:#8e8e93;}
+#tut2-title{font-size:17px;font-weight:800;line-height:1.25;margin-bottom:5px;}
+#tut2-body{font-size:13.5px;line-height:1.5;color:#4a4a52;}
+#tut2-bar{display:flex;align-items:center;gap:8px;margin-top:14px;}
+.tut2-btn{border:0;border-radius:18px;padding:9px 17px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+.tut2-next{background:#E86524;color:#fff;margin-left:auto;}
+.tut2-next:active{background:#c9541c;}
+.tut2-back{background:#ececed;color:#3a3a3c;}
+.tut2-skip{background:none;color:#8e8e93;padding:9px 4px;}
+#tut2-prog{height:3px;border-radius:2px;background:#ececed;margin-top:12px;}
+#tut2-progfill{height:100%;border-radius:2px;background:#E86524;transition:width .35s ease;width:0;}
+#tut2-card.done #tut2-title{color:#1c7a3e;}
+
+/* lesson menu */
+#tut2-menu{position:fixed;inset:0;z-index:9100;display:none;align-items:center;justify-content:center;
+  background:rgba(8,8,10,.72);backdrop-filter:blur(3px);font-family:inherit;}
+#tut2-menu.on{display:flex;}
+#tut2-menucard{background:#fff;color:#16161a;width:440px;max-width:94vw;border-radius:20px;
+  padding:26px 24px 20px;box-shadow:0 30px 90px rgba(0,0,0,.6);position:relative;}
+#tut2-menucard h3{font-size:20px;font-weight:800;margin:0 0 4px;}
+#tut2-menucard .sub{font-size:13px;color:#77777e;margin-bottom:16px;}
+#tut2-mx{position:absolute;top:16px;right:18px;color:#aaa;cursor:pointer;font-size:20px;line-height:1;background:none;border:none;font-family:inherit;}
+.tut2-item{display:flex;align-items:center;gap:13px;padding:12px 10px;border-radius:13px;cursor:pointer;}
+.tut2-item:hover{background:#f5f5f7;}
+.tut2-icn{width:38px;height:38px;border-radius:50%;background:#fdf0e8;display:flex;align-items:center;justify-content:center;flex:0 0 38px;font-size:17px;color:#E86524;}
+.tut2-nm{font-size:14.5px;font-weight:700;line-height:1.2;}
+.tut2-sub{font-size:11.5px;color:#8e8e93;margin-top:2px;}
+</style>
+
+<div id="tut2">
+  <div id="tut2-block"></div>
+  <div id="tut2-spot"></div>
+  <div id="tut2-ring"></div>
+  <div id="tut2-tap"></div>
+  <div id="tut2-card">
+    <div id="tut2-eyebrow">
+      <span id="tut2-dot"></span>
+      <span id="tut2-lesson">Training</span>
+      <span id="tut2-count">1 / 5</span>
+    </div>
+    <div id="tut2-title">Title</div>
+    <div id="tut2-body">Body</div>
+    <div id="tut2-bar">
+      <button class="tut2-btn tut2-skip" onclick="TUT2.stop()">Exit</button>
+      <button class="tut2-btn tut2-back" id="tut2-back" onclick="TUT2.back()">Back</button>
+      <button class="tut2-btn tut2-next" id="tut2-next" onclick="TUT2.next()">Next</button>
+    </div>
+    <div id="tut2-prog"><div id="tut2-progfill"></div></div>
+  </div>
+</div>
+
+<div id="tut2-menu">
+  <div id="tut2-menucard">
+    <button id="tut2-mx" onclick="TUT2.closeMenu()">&#x2715;</button>
+    <h3>Learn the Casambi app</h3>
+    <div class="sub">Guided, hands-on lessons on the live room. Pick one:</div>
+    <div class="tut2-item" onclick="TUT2.start('tour')">
+      <div class="tut2-icn">&#9737;</div>
+      <div><div class="tut2-nm">Meet the Visualizer</div><div class="tut2-sub">Two minutes, the whole interface</div></div>
+    </div>
+    <div class="tut2-item" onclick="TUT2.start('scene')">
+      <div class="tut2-icn">&#9635;</div>
+      <div><div class="tut2-nm">Build &amp; Save a Scene</div><div class="tut2-sub">Capture the room, recall it in one tap</div></div>
+    </div>
+    <div class="tut2-item" onclick="TUT2.start('schedule')">
+      <div class="tut2-icn">&#9711;</div>
+      <div><div class="tut2-nm">Create a Schedule</div><div class="tut2-sub">Make the lights run the day by themselves</div></div>
+    </div>
+    <div class="tut2-item" onclick="TUT2.start('sensor')">
+      <div class="tut2-icn">&#9788;</div>
+      <div><div class="tut2-nm">Daylight &amp; Sensors</div><div class="tut2-sub">Automatic dimming, real energy savings</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---- safe wrappers around the page's own functions ---- */
+function safeTab(t){ try{ if(typeof showTab==="function") showTab(t); }catch(e){} }
+function closeSheet(){ try{ var s=document.getElementById("sheet"); if(s) s.classList.remove("show"); }catch(e){} }
+function openFirstTile(){
+  try{
+    var t=document.querySelector("#lumgrid .tile");
+    if(t) t.click();
+  }catch(e){}
+}
+function whiteMode(){ try{ if(typeof setMode==="function") setMode("white"); }catch(e){} }
+
+/* --------------------------------------------------------------------------
+   LESSONS - the only block you should ever edit.
+   sel    : CSS selector to spotlight (page-wide - room, phone, nav, all fine)
+   pre    : runs before the step paints (switch tabs, open sheet, etc.)
+   center : true = no spotlight, centered narration card
+   pad    : extra px around the target
+   -------------------------------------------------------------------------- */
+
+var LESSONS={
+
+ tour:{ name:"Meet the Visualizer", steps:[
+  { center:true,
+    title:"Welcome to the live Office",
+    body:"Everything you see is a real Casambi control surface driving a photorealistic room. Change anything in the app on the right and the room answers instantly - no hardware required." },
+  { sel:"#lumgrid", pad:8, pre:function(){ safeTab("lum"); closeSheet(); },
+    title:"Luminaires and groups",
+    body:"Every circle is a fixture or a group - All Luminaires, Linear Lights, Downlights, Conference. Tap one to open its controls." },
+  { sel:"#sheet", pad:8, pre:function(){ safeTab("lum"); openFirstTile(); },
+    title:"Color, white and brightness",
+    body:"Drag the wheel for any color, switch to White for warm-to-cool tuning, and dim with Brightness. A group changes all of its members at once." },
+  { sel:".tab[data-t='scn']", pad:6, pre:function(){ closeSheet(); },
+    title:"Scenes",
+    body:"Whole-room looks in one tap. Try Sunset or Color Pop - watch every zone move together." },
+  { sel:".daycard", pad:8, pre:function(){ safeTab("scn"); },
+    title:"Time of day",
+    body:"The Daylight slider takes the room from noon to night. Notice how the same lighting design reads completely differently at dusk - this is what a static rendering can never show." },
+  { done:true,
+    title:"That is the whole interface",
+    body:"Now try the deeper lessons - build a scene, put the room on a schedule, or see daylight harvesting work. When you love what you have built, tap Talk to a Rep." }
+ ]},
+
+ scene:{ name:"Build & Save a Scene", steps:[
+  { sel:".tab[data-t='lum']", pad:6, pre:function(){ safeTab("lum"); closeSheet(); },
+    title:"A scene starts with the room",
+    body:"A Scene is a snapshot of how the room looks right now. So first, set the room the way you want it - starting from the Luminaires tab." },
+  { sel:"#lumgrid .tile", pad:6,
+    title:"Pick a group or fixture",
+    body:"Tap a circle to open its controls. Working by group is fastest - set the Linear Lights once instead of three fixtures separately." },
+  { sel:"#dim", pad:10, pre:function(){ openFirstTile(); },
+    title:"Set the level",
+    body:"Drag Brightness to where you want it. Whatever you leave here is exactly what the scene will remember." },
+  { sel:"#cct", pad:10, pre:function(){ whiteMode(); },
+    title:"Tune the white",
+    body:"Warm for evening, cool for focus. Color, temperature and level are all captured together." },
+  { sel:".tab[data-t='scn']", pad:6, pre:function(){ closeSheet(); },
+    title:"Go to Scenes",
+    body:"With the room set, open the Scenes tab." },
+  { sel:"#scenegrid", pad:8, pre:function(){ safeTab("scn"); },
+    title:"One tap recalls everything",
+    body:"These are saved scenes - Focus, Meet, Sunset, Relax, Color Pop. In the real Casambi app you would tap Add scene here, name it, and your room state joins this grid." },
+  { done:true,
+    title:"Scenes are where Casambi starts paying off",
+    body:"Most people never get past toggling individual lights. Scenes turn a room full of fixtures into a single intention - and they are what schedules and switches call on." }
+ ]},
+
+ schedule:{ name:"Create a Schedule", steps:[
+  { sel:".tab[data-t='set']", pad:6, pre:function(){ closeSheet(); safeTab("set"); },
+    title:"Open Settings",
+    body:"Schedules live here - the feature almost nobody finds, and the one that makes the building run itself." },
+  { sel:"#pane-set .srow:first-child", pad:6,
+    title:"Calendar and schedules",
+    body:"Open Schedules, then tap the plus to create a new one." },
+  { center:true,
+    title:"Choose the trigger",
+    body:"A schedule fires at a time of day - or at sunrise or sunset for the building's actual location, drifting with the seasons automatically." },
+  { center:true,
+    title:"Point it at a scene",
+    body:"At 07:00 run Focus. At 18:00 run Sunset. At 22:00 run All Off. The scenes you built become the building's daily routine." },
+  { sel:".daycard", pad:8,
+    title:"Watch it execute",
+    body:"Drag the Daylight slider through the day and picture your schedule firing - opening bright, warming toward evening, going dark after close. This is the part a client normally cannot see until the system is installed." },
+  { done:true,
+    title:"The building runs itself",
+    body:"Layered schedules handle opening, closing, cleaning crews and security minimums without anyone touching a phone. That is what the system is actually being bought for." }
+ ]},
+
+ sensor:{ name:"Daylight & Sensors", steps:[
+  { sel:".tab[data-t='set']", pad:6, pre:function(){ closeSheet(); safeTab("set"); },
+    title:"Open Settings",
+    body:"Sensors are paired here once, then assigned to the luminaires they should influence. This network has ten." },
+  { sel:"#pane-set .srow:nth-child(3)", pad:6,
+    title:"Select a daylight sensor",
+    body:"It reports the light level it is actually reading in the space, in real time." },
+  { center:true,
+    title:"Assign it and set a target",
+    body:"Point the sensor at the fixtures nearest the windows and tell it the level to hold on the desks. As daylight rises the fixtures dim; as it falls they come back up." },
+  { sel:".daycard", pad:8,
+    title:"See it work",
+    body:"Slide Daylight up and down and imagine the linears responding - holding a constant level on the desks while burning the minimum energy to do it." },
+  { done:true,
+    title:"This is the energy argument",
+    body:"Daylight harvesting is invisible in a static rendering and hard to explain in words. Here, it is a slider. That is the point of this whole tool." }
+ ]}
+};
+
+/* -------------------------------------------------------------------------- */
+
+var L=null,i=0;
+function el(id){ return document.getElementById(id); }
+
+function paint(){
+  var s=L.steps[i];
+  var spot=el("tut2-spot"),ring=el("tut2-ring"),tap=el("tut2-tap"),card=el("tut2-card");
+
+  el("tut2-lesson").textContent=L.name;
+  el("tut2-count").textContent=(i+1)+" / "+L.steps.length;
+  el("tut2-title").textContent=s.title;
+  el("tut2-body").textContent=s.body;
+  card.className=s.done?"done":"";
+  el("tut2-progfill").style.width=Math.round(((i+1)/L.steps.length)*100)+"%";
+  el("tut2-back").style.visibility=i===0?"hidden":"visible";
+  el("tut2-next").textContent=(s.done||i===L.steps.length-1)?"Finish":"Next";
+
+  if(s.pre){ try{ s.pre(); }catch(e){} }
+
+  var tgt=(!s.center&&!s.done&&s.sel)?document.querySelector(s.sel):null;
+
+  if(!tgt){
+    spot.style.width="0px";spot.style.height="0px";
+    spot.style.left="50vw";spot.style.top="50vh";
+    ring.style.opacity="0";tap.className="";
+    card.style.left="calc(50vw - "+Math.min(200,window.innerWidth/2-14)+"px)";
+    card.style.top=Math.max(20,(window.innerHeight-card.offsetHeight)/2)+"px";
+    return;
+  }
+
+  /* give pre() DOM changes a beat to land, then measure */
+  setTimeout(function(){
+    var r=tgt.getBoundingClientRect();
+    var pad=s.pad||6;
+    var x=r.left-pad,y=r.top-pad,w=r.width+pad*2,h=r.height+pad*2;
+
+    spot.style.left=x+"px";spot.style.top=y+"px";
+    spot.style.width=w+"px";spot.style.height=h+"px";
+    ring.style.opacity="1";
+    ring.style.left=(x-2)+"px";ring.style.top=(y-2)+"px";
+    ring.style.width=(w+4)+"px";ring.style.height=(h+4)+"px";
+    tap.style.left=(x+w/2)+"px";tap.style.top=(y+h/2)+"px";
+    tap.className="go";
+
+    /* card placement: below target if room, else above; clamp horizontally */
+    var cw=card.offsetWidth||400,ch=card.offsetHeight||190;
+    var cx=Math.min(Math.max(14,x+w/2-cw/2),window.innerWidth-cw-14);
+    var cy=(y+h+18+ch<window.innerHeight)?(y+h+18):Math.max(14,y-ch-18);
+    card.style.left=cx+"px";card.style.top=cy+"px";
+  },60);
+}
+
+window.TUT2={
+  menu:function(){ el("tut2-menu").className="on"; },
+  closeMenu:function(){ el("tut2-menu").className=""; },
+  start:function(k){
+    L=LESSONS[k]; if(!L) return;
+    i=0;
+    el("tut2-menu").className="";
+    el("tut2").className="on";
+    paint();
+  },
+  next:function(){ if(i<L.steps.length-1){ i++; paint(); } else TUT2.stop(); },
+  back:function(){ if(i>0){ i--; paint(); } },
+  stop:function(){
+    el("tut2").className="";
+    closeSheet();
+    safeTab("lum");
+  }
+};
+
+/* rewire the existing Learn nav button to the new lesson menu */
+window.showLearn=function(){ TUT2.menu(); };
+
+document.addEventListener("keydown",function(e){
+  if(el("tut2").className==="on"){
+    if(e.key==="ArrowRight")TUT2.next();
+    if(e.key==="ArrowLeft")TUT2.back();
+    if(e.key==="Escape")TUT2.stop();
+  } else if(el("tut2-menu").className==="on"&&e.key==="Escape"){
+    TUT2.closeMenu();
+  }
+});
+
+/* re-measure the spotlight on resize so it tracks the target */
+window.addEventListener("resize",function(){
+  if(el("tut2").className==="on") paint();
+});
+
+})();
+</script>
+
 </body>
 </html>
