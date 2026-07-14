@@ -985,7 +985,7 @@ var DAYPLAN=[
  {t:14.0, day:0.85, label:"Afternoon - Meet scene in the conference area", scene:"Meet"},
  {t:17.5, day:0.5,  label:"Golden hour - Sunset scene", scene:"Sunset"},
  {t:19.5, day:0.15, label:"Evening - Relax scene",     scene:"Relax"},
- {t:21.0, day:0.04, label:"Cleaning crew - Cleaning scene", scene:"Cleaning"},
+ {t:21.0, day:0.04, label:"Cleaning crew - full light, Focus levels", scene:"Cleaning"},
  {t:22.5, day:0.02, label:"Security minimum", scene:"Security"}
 ];
 
@@ -1099,20 +1099,25 @@ function build(){
 
   /* add the schedule's states as real scenes in the app */
   try{
+    /* EDIT HERE: the downlights that stay on overnight (stairs + window line).
+       Toggle individual Down tiles in the app to identify which numbers
+       sit where, then adjust this list. Down N = element_N.               */
+    var SECURITY_IDS=["element_1","element_2","element_7","element_8"];
+
     SCENES.push(
       {name:"Security",icon:"\u263D",color:"#1b2540",day:.02,
-       apply:function(){ set(function(l){ return l.grp==="lin"
-         ?{on:true,mode:"white",cct:.5,level:.12}:{on:false,level:0}; }); }},
+       apply:function(){ set(function(l){
+         return SECURITY_IDS.indexOf(l.id)>=0
+           ?{on:true,mode:"white",cct:.5,level:.25}
+           :{on:false,level:0}; }); }},
       {name:"Harvest",icon:"\u25D1",color:"#efe7d2",day:.95,
        apply:function(){ set(function(l){
          if(l.grp==="lin")  return {on:true,mode:"white",cct:.5,level:.35};
          if(l.grp==="down") return {on:true,mode:"white",cct:.5,level:.85};
          return {on:true,mode:"white",cct:.5,level:.9}; }); }},
-      {name:"Cleaning",icon:"\u2726",color:"#9fb7c9",day:.04,
+      {name:"Cleaning",icon:"\u2726",color:"#e9edf2",day:.04,
        apply:function(){ set(function(l){
-         if(l.grp==="conf") return {on:false,level:0};
-         if(l.grp==="lin")  return {on:true,mode:"white",cct:.85,level:1};
-         return {on:true,mode:"white",cct:.85,level:.9}; }); }}
+         return {on:true,mode:"white",cct:.5,level:.98}; }); }}
     );
     buildScenes();
   }catch(err){}
