@@ -1102,13 +1102,13 @@ function build(){
     /* EDIT HERE: the downlights that stay on overnight (stairs + window line).
        Toggle individual Down tiles in the app to identify which numbers
        sit where, then adjust this list. Down N = element_N.               */
-    var SECURITY_IDS=["element_1","element_2","element_7","element_8"];
+    var SECURITY_IDS=["element_1","element_2","element_3","element_4"];
 
     SCENES.push(
       {name:"Security",icon:"\u263D",color:"#1b2540",day:.02,
        apply:function(){ set(function(l){
          return SECURITY_IDS.indexOf(l.id)>=0
-           ?{on:true,mode:"white",cct:.5,level:.25}
+           ?{on:true,mode:"white",cct:.5,level:.5}
            :{on:false,level:0}; }); }},
       {name:"Harvest",icon:"\u25D1",color:"#efe7d2",day:.95,
        apply:function(){ set(function(l){
