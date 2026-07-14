@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Casambi Visualizer — Office</title>
+<style>
+  :root{--orange:#E8912A;--casorange:#E86524;--ink:#1c1c1e;--ink2:#2c2c2e;--ink3:#3a3a3c;
+    --text:#fff;--text2:rgba(235,235,245,.8);--text3:rgba(235,235,245,.5);--sep:rgba(255,255,255,.1)}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
+    background:#000;color:var(--text);overflow:hidden}
+  .topnav{height:52px;background:#0f0f11;display:flex;align-items:center;justify-content:space-between;padding:0 22px;border-bottom:1px solid #000;position:relative;z-index:30}
+  .topnav .brand{display:flex;align-items:center;gap:13px}
+  .topnav .brand img{height:26px;width:auto}
+  .topnav .brand .pname{font-weight:700;font-size:15px;color:#fff;letter-spacing:-.01em}
+  .topnav .brand .sep{width:1px;height:18px;background:rgba(255,255,255,.18)}
+  .topnav .homelink{color:var(--orange);font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px}
+  .shell{display:flex;height:calc(100vh - 52px);width:100vw}
+
+  /* ROOM */
+  .room{flex:1;position:relative;background:#000;overflow:hidden;isolation:isolate;display:flex;align-items:center;justify-content:center}
+  .stage{position:relative;width:100%;max-height:100vh}
+  .stage img{position:absolute;top:0;left:0;width:100%;height:auto;display:block}
+  .stage img.base{position:relative;z-index:0;filter:brightness(.22)}
+  .stage img.layer{z-index:1;mix-blend-mode:screen;opacity:0;transition:opacity .18s linear}
+  .stage.anim img.layer{transition:opacity .32s linear}      /* smooth, low-rate colour drift */
+  .stage.xfade img.layer{transition:opacity .6s ease}         /* gentle scene-to-scene crossfade */
+  .stage.xfade img.base{transition:filter .6s ease}           /* ease the day/night backdrop too */
+  .room .daylabel{position:absolute;left:18px;bottom:64px;font-size:12px;color:var(--text3);z-index:5}
+  .dayrow{position:absolute;left:18px;bottom:34px;z-index:5;display:flex;align-items:center;gap:10px;width:230px}
+  .dayrow input{flex:1}
+  .roomtag{position:absolute;right:18px;top:16px;z-index:5;font-size:12px;color:var(--text3);
+    background:rgba(0,0,0,.35);padding:6px 12px;border-radius:20px;backdrop-filter:blur(6px)}
+
+  .views{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:6;display:flex;gap:9px}
+  .vbtn{font-size:12px;font-weight:600;padding:8px 16px;border-radius:20px;border:1px solid rgba(255,255,255,.22);background:rgba(0,0,0,.42);color:#fff;cursor:pointer;backdrop-filter:blur(6px)}
+  .vbtn.on{background:var(--orange);color:#1a1205;border-color:var(--orange)}
+  .vbtn.soon{opacity:.55;cursor:default}
+  .vbtn .tag{font-size:9px;opacity:.8;margin-left:5px;text-transform:uppercase;letter-spacing:.04em}
+
+  /* PHONE / APP PANEL */
+  .app{width:434px;min-width:434px;background:#0e0e10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;border-left:1px solid #000;padding:16px}
+  .phone{width:372px;height:min(calc(100% - 118px),780px);background:var(--ink);border-radius:32px;overflow:hidden;
+    display:flex;flex-direction:column;position:relative;box-shadow:0 24px 70px rgba(0,0,0,.6),0 0 0 1px #2b2b2e}
+  .topbar{height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;border-bottom:.5px solid var(--sep)}
+  .topbar .side{font-size:15px;color:var(--orange);cursor:pointer;width:60px}
+  .topbar .side.r{text-align:right}
+  .topbar .title{font-size:15px;font-weight:600}
+  .pane{flex:1;overflow-y:auto;padding:18px 16px 10px}
+  .pane::-webkit-scrollbar{width:0}
+  .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px 10px}
+  .tile{display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer}
+  .disc{width:74px;height:74px;border-radius:50%;background:var(--ink3);display:flex;align-items:center;justify-content:center;
+    position:relative;transition:transform .1s;border:2px solid transparent;overflow:hidden}
+  .tile:active .disc{transform:scale(.94)}
+  .tile.sel .disc{border-color:var(--orange)}
+  .disc .swatch{position:absolute;inset:0;opacity:.0;transition:opacity .2s}
+  .disc .glyph{position:relative;z-index:2;font-size:12px;color:#fff;font-weight:600;text-align:center;line-height:1.1}
+  .disc.on{background:#f4f4f6}
+  .disc.on .glyph{color:#222}
+  .level{width:44px;height:3px;border-radius:2px;background:#555;margin-top:2px;overflow:hidden;position:relative}
+  .level i{position:absolute;left:0;top:0;bottom:0;background:#fff;width:0%}
+  .tile .lbl{font-size:11.5px;color:var(--text2);text-align:center;max-width:84px}
+  .master .disc{background:radial-gradient(circle at 50% 40%,#3a3a3c,#2a2a2e)}
+  .master .disc .glyph{color:var(--orange);font-size:22px}
+
+  .daycard{width:372px;background:linear-gradient(180deg,#26262b,#1e1e22);border-radius:20px;padding:16px 20px;box-shadow:0 14px 40px rgba(0,0,0,.5),0 0 0 1px #2b2b2e}
+  .daycard .dhead{display:flex;align-items:baseline;gap:9px;margin-bottom:11px}
+  .daycard .dhead b{font-size:15px;font-weight:700;color:#fff}
+  .daycard .dhead .dsub{font-size:10.5px;font-weight:600;color:var(--orange);text-transform:uppercase;letter-spacing:.08em}
+  .daycard .drow{display:flex;align-items:center;gap:12px}
+  .daycard .dic{font-size:16px;color:var(--text3)}
+  .daycard #day{flex:1}
+  .daycard #day::-webkit-slider-runnable-track{background:linear-gradient(90deg,#16233f,#3a5a8a,#c9b98a,#fdf3df)}
+
+  /* CONTROL SHEET */
+  .sheet{position:absolute;left:0;right:0;bottom:52px;background:var(--ink2);border-top:1px solid var(--sep);
+    border-radius:18px 18px 0 0;padding:16px 18px 20px;transform:translateY(110%);transition:transform .28s cubic-bezier(.3,.9,.3,1);
+    box-shadow:0 -14px 40px rgba(0,0,0,.5);z-index:20;max-height:78%;overflow-y:auto}
+  .sheet.show{transform:translateY(0)}
+  .sheet .sh-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  .sheet .sh-h b{font-size:17px}
+  .sheet .sh-h .x{color:var(--orange);cursor:pointer;font-size:15px}
+  .modes{display:flex;gap:8px;margin-bottom:16px}
+  .modes button{flex:1;padding:8px;border:none;border-radius:9px;background:var(--ink3);color:var(--text2);font-size:12.5px;cursor:pointer;font-weight:600}
+  .modes button.on{background:var(--orange);color:#1a1205}
+  .wheelwrap{display:flex;justify-content:center;margin:6px 0 16px;position:relative}
+  .wheelbox{position:relative;width:230px;height:230px}
+  #wheel{display:block;border-radius:50%;touch-action:none;cursor:crosshair;user-select:none;-webkit-user-drag:none;box-shadow:0 6px 20px rgba(0,0,0,.4)}
+  #wsel{position:absolute;width:20px;height:20px;border-radius:50%;border:3px solid #fff;
+    box-shadow:0 1px 6px rgba(0,0,0,.6);transform:translate(-50%,-50%);pointer-events:none;left:50%;top:50%}
+  .ctlrow{margin:14px 0}
+  .ctlrow .cl{display:flex;justify-content:space-between;font-size:12.5px;color:var(--text3);margin-bottom:7px}
+  input[type=range]{-webkit-appearance:none;width:100%;height:26px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:26px;border-radius:13px}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;
+    background:#fff;box-shadow:0 1px 5px rgba(0,0,0,.5);margin-top:1px}
+  #dim::-webkit-slider-runnable-track{background:linear-gradient(90deg,#222,#fff)}
+  #cct::-webkit-slider-runnable-track{background:linear-gradient(90deg,#ff9b3c,#fff7ea,#bcd8ff)}
+  .toggle{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--sep);margin-top:6px}
+  .sw{width:50px;height:30px;border-radius:16px;background:#555;position:relative;transition:background .2s;cursor:pointer}
+  .sw i{position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:transform .2s}
+  .sw.on{background:#34c759}.sw.on i{transform:translateX(20px)}
+
+  /* SCENES */
+  .scenes{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px 10px}
+  .scene{display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer}
+  .scene .sc{width:74px;height:74px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:24px;transition:transform .1s;border:2px solid transparent}
+  .scene:active .sc{transform:scale(.94)}
+  .scene.on .sc{border-color:#fff}
+  .scene .lbl{font-size:12px;color:var(--text2)}
+
+  /* GALLERY */
+  .gcards{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .gcard{border-radius:12px;overflow:hidden;background:var(--ink2);cursor:pointer;position:relative}
+  .gcard .im{height:96px;background-size:cover;background-position:center}
+  .gcard .cap{padding:8px 10px;font-size:12px;color:var(--text2)}
+  .gcard .soon{position:absolute;top:8px;left:8px;font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+    background:rgba(0,0,0,.55);padding:3px 7px;border-radius:20px;color:var(--text3)}
+  .gcard.live .soon{background:var(--orange);color:#1a1205}
+
+  /* SETTINGS LIST */
+  .slist{background:#f2f2f7;border-radius:12px;overflow:hidden;color:#111}
+  .srow{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-bottom:.5px solid #d8d8dd;font-size:14.5px}
+  .srow:last-child{border-bottom:none}
+  .srow .rt{display:flex;align-items:center;gap:11px}
+  .srow .ic{width:26px;height:26px;border-radius:7px;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px}
+  .srow .badge{background:#c7c7cc;color:#fff;border-radius:20px;font-size:11px;padding:1px 8px;margin-right:6px}
+  .srow .chev{color:#c0c0c5}
+
+  /* TABS */
+  .tabs{display:flex;border-top:.5px solid var(--sep);height:52px;background:rgba(28,28,30,.98)}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:var(--text3)}
+  .tab svg{width:22px;height:22px;fill:currentColor}
+  .tab span{font-size:10px}
+  .tab.on{color:var(--orange)}
+  @media(max-width:760px){.app{width:100%;min-width:0}.room{display:none}}
+
+  .navactions{display:flex;align-items:center;gap:11px}
+  .navbtn{font-size:13px;font-weight:600;padding:7px 15px;border-radius:20px;border:1px solid rgba(255,255,255,.28);background:transparent;color:#fff;cursor:pointer;text-decoration:none}
+  .navbtn:hover{border-color:#fff}
+  .navbtn.cta{background:var(--orange);color:#1a1205;border-color:var(--orange)}
+  .learnov{position:fixed;inset:0;z-index:100;background:rgba(8,8,10,.72);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;padding:24px}
+  .learnov.show{display:flex}
+  .learncard{background:#fff;color:#16161a;width:440px;max-width:94vw;border-radius:20px;padding:30px 30px 24px;box-shadow:0 30px 90px rgba(0,0,0,.6);position:relative}
+  .learncard .step{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--casorange)}
+  .learncard h3{font-size:22px;font-weight:800;margin:8px 0 10px;line-height:1.2}
+  .learncard p{font-size:15.5px;color:#4a4a52;line-height:1.55}
+  .learncard .nav{display:flex;justify-content:space-between;align-items:center;margin-top:22px}
+  .learncard .dots{display:flex;gap:6px}
+  .learncard .dots i{width:7px;height:7px;border-radius:50%;background:#d5d5da}
+  .learncard .dots i.on{background:var(--casorange)}
+  .learncard .btns{display:flex;gap:10px}
+  .lb{padding:9px 18px;border-radius:20px;font-size:14px;font-weight:600;cursor:pointer;border:none}
+  .lb.ghost{background:#eee;color:#333}
+  .lb.prim{background:var(--casorange);color:#fff}
+  .learncard .lx{position:absolute;top:16px;right:18px;color:#aaa;cursor:pointer;font-size:20px;line-height:1}
+</style>
+</head>
+<body>
+<header class="topnav">
+  <a class="brand" href="index.html"><img src="data:image/png;base64,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" alt="AD&amp;M"><span class="sep"></span><span class="pname">Casambi Visualizer</span></a>
+  <div class="navactions">
+    <button class="navbtn" onclick="showLearn()">Learn</button>
+    <a class="navbtn cta" href="index.html#connect">Talk to a Rep</a>
+    <a class="homelink" href="index.html">Home &#8599;</a>
+  </div>
+</header>
+<div class="shell">
+  <!-- ROOM -->
+  <div class="room">
+    <div class="stage" id="stage">
+      <img class="base" id="base" alt=""
+        srcset="assets/office_1280/base.jpg 1280w, assets/office_full2/base.jpg?v=20260707 2560w"
+        sizes="(max-width:820px) 100vw, 60vw"
+        src="assets/office_full2/base.jpg?v=20260707">
+      <!-- layers injected by JS -->
+    </div>
+    <div class="roomtag">AD&amp;M Office · live</div>
+    <div class="views">
+      <button class="vbtn on">View 1</button>
+      <button class="vbtn soon">View 2<span class="tag">soon</span></button>
+      <button class="vbtn soon">View 3<span class="tag">soon</span></button>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div class="app">
+    <div class="phone">
+    <div class="topbar">
+      <span class="side" id="tl">&nbsp;</span>
+      <span class="title" id="nettitle">AD&amp;M Office</span>
+      <span class="side r" id="tr">Edit</span>
+    </div>
+
+    <!-- LUMINAIRES -->
+    <div class="pane" id="pane-lum">
+      <div class="grid" id="lumgrid"></div>
+    </div>
+
+    <!-- SCENES -->
+    <div class="pane" id="pane-scn" style="display:none">
+      <div class="scenes" id="scenegrid"></div>
+    </div>
+
+    <!-- GALLERY -->
+    <div class="pane" id="pane-gal" style="display:none">
+      <div class="gcards">
+        <div class="gcard live" onclick="showTab('lum')"><span class="soon">● Live</span>
+          <div class="im" id="galthumb"></div><div class="cap">Office</div></div>
+        <div class="gcard"><span class="soon">Soon</span><div class="im" style="background:linear-gradient(120deg,#7a3b1e,#3a1f12)"></div><div class="cap">Hospitality</div></div>
+        <div class="gcard"><span class="soon">Soon</span><div class="im" style="background:linear-gradient(120deg,#5b2b7a,#2a1240)"></div><div class="cap">Art &amp; Culture</div></div>
+        <div class="gcard"><span class="soon">Soon</span><div class="im" style="background:linear-gradient(120deg,#1e5b6b,#0e2a33)"></div><div class="cap">Education</div></div>
+        <div class="gcard"><span class="soon">Soon</span><div class="im" style="background:linear-gradient(120deg,#6b5a2b,#332a12)"></div><div class="cap">Worship</div></div>
+        <div class="gcard"><span class="soon">Soon</span><div class="im" style="background:linear-gradient(120deg,#243a4a,#0e1a24)"></div><div class="cap">Outdoor</div></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="pane" id="pane-set" style="display:none">
+      <div class="slist">
+        <div class="srow"><span class="rt"><span class="ic">◷</span>Schedules</span><span class="chev">›</span></div>
+        <div class="srow"><span class="rt"><span class="ic">⊠</span>Switches</span><span><span class="badge">9</span><span class="chev">›</span></span></div>
+        <div class="srow"><span class="rt"><span class="ic">◉</span>Sensors</span><span><span class="badge">10</span><span class="chev">›</span></span></div>
+        <div class="srow"><span class="rt"><span class="ic">☁</span>Gateways</span><span><span class="badge">1</span><span class="chev">›</span></span></div>
+        <div class="srow"><span class="rt"><span class="ic">⚑</span>Network Settings</span><span class="chev">›</span></div>
+      </div>
+      <div class="slist" style="margin-top:16px">
+        <div class="srow"><span class="rt"><span class="ic">≋</span>Nearby Devices</span><span class="chev">›</span></div>
+        <div class="srow"><span class="rt"><span class="ic">⚑</span>Select Network</span><span class="chev">›</span></div>
+        <div class="srow"><span class="rt"><span class="ic">⚙</span>App Settings</span><span class="chev">›</span></div>
+        <div class="srow"><span class="rt"><span class="ic">i</span>Help</span><span class="chev">›</span></div>
+      </div>
+    </div>
+
+    <!-- CONTROL SHEET -->
+    <div class="sheet" id="sheet">
+      <div class="sh-h"><b id="sh-name">Luminaire</b><span class="x" id="sh-x">Done</span></div>
+      <div class="modes">
+        <button id="m-color" class="on" onclick="setMode('color')">Color</button>
+        <button id="m-white" onclick="setMode('white')">White</button>
+      </div>
+      <div id="colorui">
+        <div class="wheelwrap"><div class="wheelbox"><canvas id="wheel" width="230" height="230"></canvas><div id="wsel"></div></div></div>
+      </div>
+      <div id="whiteui" style="display:none">
+        <div class="ctlrow"><div class="cl"><span>Warm</span><span>Cool</span></div>
+          <input type="range" id="cct" min="0" max="100" value="50"></div>
+      </div>
+      <div class="ctlrow"><div class="cl"><span>Brightness</span><span id="dimval">80%</span></div>
+        <input type="range" id="dim" min="0" max="100" value="80"></div>
+      <div class="toggle"><span style="font-size:14px">Power</span><div class="sw on" id="pw"><i></i></div></div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <div class="tab on" data-t="lum" onclick="showTab('lum')">
+        <svg viewBox="0 0 24 24"><path d="M9 21c0 .5.4 1 1 1h4c.6 0 1-.5 1-1v-1H9v1zm3-19C8.1 2 5 5.1 5 9c0 2.4 1.2 4.5 3 5.7V17c0 .6.4 1 1 1h6c.6 0 1-.4 1-1v-2.3c1.8-1.2 3-3.3 3-5.7 0-3.9-3.1-7-7-7z"/></svg>
+        <span>Luminaires</span></div>
+      <div class="tab" data-t="gal" onclick="showTab('gal')">
+        <svg viewBox="0 0 24 24"><path d="M21 3H3v18h18V3zM5 19l3.5-4.5 2.5 3 3.5-4.5L19 19H5z"/></svg>
+        <span>Gallery</span></div>
+      <div class="tab" data-t="scn" onclick="showTab('scn')">
+        <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8 12.5v-9l6 4.5-6 4.5z"/></svg>
+        <span>Scenes</span></div>
+      <div class="tab" data-t="set" onclick="showTab('set')">
+        <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+        <span>Settings</span></div>
+    </div>
+    </div>
+    <div class="daycard">
+      <div class="dhead"><b>Daylight</b><span class="dsub">Time of day &middot; only here</span></div>
+      <div class="drow"><span class="dic">&#9728;</span><input type="range" id="day" min="0" max="100" value="90"><span class="dic">&#9789;</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- MODEL ----
+const LUMS=[
+ {id:'linear_1',name:'Linear 1',grp:'lin'},{id:'linear_2',name:'Linear 2',grp:'lin'},{id:'linear_3',name:'Linear 3',grp:'lin'},
+ {id:'element_1',name:'Down 1',grp:'down'},{id:'element_2',name:'Down 2',grp:'down'},{id:'element_3',name:'Down 3',grp:'down'},
+ {id:'element_4',name:'Down 4',grp:'down'},{id:'element_5',name:'Down 5',grp:'down'},{id:'element_6',name:'Down 6',grp:'down'},
+ {id:'element_7',name:'Down 7',grp:'down'},{id:'element_8',name:'Down 8',grp:'down'},
+ {id:'conference_1',name:'Conf 1',grp:'conf'},{id:'conference_2',name:'Conf 2',grp:'conf'}
+];
+const GROUPS=[
+ {id:'master',name:'All Luminaires',members:LUMS.map(l=>l.id)},
+ {id:'lin',name:'Linear Lights',members:['linear_1','linear_2','linear_3']},
+ {id:'down',name:'Downlights',members:['element_1','element_2','element_3','element_4','element_5','element_6','element_7','element_8']},
+ {id:'conf',name:'Conference',members:['conference_1','conference_2']}
+];
+// per-luminaire state
+const NEUTRAL_COLOR=[0.80,1.0,0.78]; // white-matching colour (down-left light green)
+const st={};
+LUMS.forEach(l=>st[l.id]={on:true,level:.5,mode:'white',rgb:[1,0,0],sat:0,cct:.5}); // color default = white-match
+let daylight=.9, sel={type:'group',id:'master'}, mode='color';
+
+// ---- STAGE LAYERS ----
+const stage=document.getElementById('stage');
+const layerEls={}; // id_channel -> img
+LUMS.forEach(l=>['R','G','B','W'].forEach(c=>{
+  const im=document.createElement('img');
+  const _nm='light_'+l.id+'_'+c+'.jpg';
+  im.className='layer';
+  im.srcset='assets/office_1280/'+_nm+' 1280w, assets/office_full2/'+_nm+'?v=20260707 2560w';
+  im.sizes='(max-width:820px) 100vw, 60vw';
+  im.src='assets/office_full2/'+_nm+'?v=20260707';
+  im.onerror=()=>{im.dataset.missing='1';};
+  stage.appendChild(im); layerEls[l.id+c]=im;
+}));
+const base=document.getElementById('base');
+
+function setL(k,v){ const e=layerEls[k];
+  if(v>0.003){ e.style.display='block'; e.style.opacity=v.toFixed(3); }
+  else { e.style.opacity='0'; clearTimeout(e._t); e._t=setTimeout(()=>{ if(parseFloat(e.style.opacity||0)===0) e.style.display='none'; },240); } }
+function render(){
+  base.style.filter='brightness('+(0.06+daylight*1.15).toFixed(3)+')';
+  LUMS.forEach(l=>{
+    const s=st[l.id]; const L=(s.on?1:0)*s.level;
+    let R=0,G=0,B=0,Wv=0;
+    if(s.mode==='white'){ Wv=L; const warm=Math.max(0,(.5-s.cct))*2, cool=Math.max(0,(s.cct-.5))*2;
+      R=L*warm*.5; B=L*cool*.5; }
+    else { const sa=s.sat==null?0:s.sat; Wv=L*(1-sa); R=L*s.rgb[0]*sa; G=L*s.rgb[1]*sa; B=L*s.rgb[2]*sa; }
+    setL(l.id+'R',R); setL(l.id+'G',G); setL(l.id+'B',B); setL(l.id+'W',Wv);
+  });
+  paintTiles();
+}
+
+// ---- HELPERS ----
+function selMembers(){ return sel.type==='group'? GROUPS.find(g=>g.id===sel.id).members : [sel.id]; }
+function selName(){ return sel.type==='group'? GROUPS.find(g=>g.id===sel.id).name : LUMS.find(l=>l.id===sel.id).name; }
+function applyColor(rgb,sat){ stopAnim(); selMembers().forEach(id=>{st[id].rgb=rgb.slice();st[id].sat=sat;st[id].mode='color';st[id].on=true;}); document.getElementById('pw').classList.add('on'); render(); }
+function applyCCT(t){ stopAnim(); selMembers().forEach(id=>{st[id].cct=t;st[id].mode='white';st[id].on=true;}); document.getElementById('pw').classList.add('on'); render(); }
+function applyLevel(v){ stopAnim(); selMembers().forEach(id=>{st[id].level=v;st[id].on=true;}); render(); }
+function applyPower(on){ stopAnim(); selMembers().forEach(id=>st[id].on=on); render(); }
+function rgbCss(rgb,a){return 'rgba('+Math.round(rgb[0]*255)+','+Math.round(rgb[1]*255)+','+Math.round(rgb[2]*255)+','+(a==null?1:a)+')';}
+
+// ---- LUMINAIRE GRID ----
+const lumgrid=document.getElementById('lumgrid');
+function buildGrid(){
+  lumgrid.innerHTML='';
+  // master
+  addTile('master','All',null,true);
+  // groups
+  GROUPS.filter(g=>g.id!=='master').forEach(g=>addTile(g.id,g.name,null,true));
+  // individuals
+  LUMS.forEach(l=>addTile(l.id,l.name,l,false));
+}
+function addTile(id,label,lum,isGroup){
+  const t=document.createElement('div'); t.className='tile'+(id==='master'?' master':'');
+  t.dataset.id=id; t.dataset.group=isGroup?1:'';
+  const rep=isGroup? (id==='master'?'✦':label.split(' ')[0]) : label.split(' ')[1]||label;
+  t.innerHTML='<div class="disc"><div class="swatch"></div><div class="glyph">'+(id==='master'?'✦':rep)+'</div></div>'
+    +'<div class="level"><i></i></div><div class="lbl">'+label+'</div>';
+  t.onclick=()=>{ sel=isGroup?{type:'group',id}:{type:'lum',id}; openSheet(); markSel(); };
+  lumgrid.appendChild(t);
+}
+function markSel(){ document.querySelectorAll('.tile').forEach(t=>t.classList.toggle('sel',
+   (sel.type==='group'&&t.dataset.id===sel.id)||(sel.type==='lum'&&t.dataset.id===sel.id))); }
+function paintTiles(){
+  document.querySelectorAll('.tile').forEach(t=>{
+    const id=t.dataset.id; const disc=t.querySelector('.disc'); const sw=t.querySelector('.swatch');
+    const lvl=t.querySelector('.level i');
+    let members = t.dataset.group? GROUPS.find(g=>g.id===id).members : [id];
+    const anyOn=members.some(m=>st[m].on);
+    const avgL=members.reduce((a,m)=>a+(st[m].on?st[m].level:0),0)/members.length;
+    const onm=members.find(m=>st[m].on)||members[0]; const so=st[onm];
+    const eff = so.mode==='white' ? cct2rgb(so.cct)
+              : so.rgb.map((c,i)=>{const sa=so.sat==null?0:so.sat; return [1,1,1][i]*(1-sa)+c*sa;});
+    if(anyOn){ sw.style.opacity=(0.4+avgL*0.55).toFixed(3); sw.style.background=rgbCss(eff); disc.classList.remove('on'); }
+    else { sw.style.opacity=0; disc.classList.remove('on'); }
+    if(lvl) lvl.style.width=(avgL*100)+'%';
+  });
+}
+
+// ---- CONTROL SHEET ----
+const sheet=document.getElementById('sheet');
+function openSheet(){ document.getElementById('sh-name').textContent=selName();
+  const m=selMembers(); const s0=st[m[0]];
+  document.getElementById('dim').value=Math.round(s0.level*100); document.getElementById('dimval').textContent=Math.round(s0.level*100)+'%';
+  document.getElementById('pw').classList.toggle('on',s0.on);
+  document.getElementById('cct').value=Math.round((s0.cct==null?.5:s0.cct)*100);
+  const mo=s0.mode||'white';
+  document.getElementById('m-color').classList.toggle('on',mo==='color');
+  document.getElementById('m-white').classList.toggle('on',mo==='white');
+  document.getElementById('colorui').style.display=mo==='color'?'block':'none';
+  document.getElementById('whiteui').style.display=mo==='white'?'block':'none';
+  placeWheel(s0.rgb, s0.sat||0); sheet.classList.add('show'); }
+document.getElementById('sh-x').onclick=()=>sheet.classList.remove('show');
+function setMode(x){ stopAnim(); mode=x; document.getElementById('m-color').classList.toggle('on',x==='color');
+  document.getElementById('m-white').classList.toggle('on',x==='white');
+  document.getElementById('colorui').style.display=x==='color'?'block':'none';
+  document.getElementById('whiteui').style.display=x==='white'?'block':'none';
+  selMembers().forEach(id=>st[id].mode=x);
+  if(x==='color'){ const m0=st[selMembers()[0]]; placeWheel(m0.rgb, m0.sat||0); }
+  render(); }
+document.getElementById('dim').oninput=e=>{const v=e.target.value/100;document.getElementById('dimval').textContent=e.target.value+'%';applyLevel(v);};
+document.getElementById('cct').oninput=e=>{applyCCT(e.target.value/100);};
+document.getElementById('pw').onclick=function(){const on=!this.classList.contains('on');this.classList.toggle('on',on);applyPower(on);};
+
+// ---- COLOR WHEEL ----
+const wheel=document.getElementById('wheel'), wctx=wheel.getContext('2d'), wsel=document.getElementById('wsel');
+const WR=115;
+(function drawWheel(){
+  const img=wctx.createImageData(230,230), d=img.data;
+  for(let y=0;y<230;y++)for(let x=0;x<230;x++){
+    const dx=x-WR,dy=y-WR,dist=Math.sqrt(dx*dx+dy*dy),i=(y*230+x)*4;
+    if(dist>WR){d[i+3]=0;continue;}
+    let h=(Math.atan2(dy,dx)*180/Math.PI+360)%360, s=Math.min(dist/WR,1);
+    const rgb=hsv2rgb(h,s,1);
+    d[i]=rgb[0]*255;d[i+1]=rgb[1]*255;d[i+2]=rgb[2]*255;d[i+3]=255;
+  }
+  wctx.putImageData(img,0,0);
+})();
+function wheelPick(ev){
+  const r=wheel.getBoundingClientRect();
+  const px=(ev.touches?ev.touches[0].clientX:ev.clientX)-r.left;
+  const py=(ev.touches?ev.touches[0].clientY:ev.clientY)-r.top;
+  const sx=230/r.width, sy=230/r.height; let dx=px*sx-WR, dy=py*sy-WR;
+  let dist=Math.sqrt(dx*dx+dy*dy); if(dist>WR){dx*=WR/dist;dy*=WR/dist;dist=WR;}
+  let hh=(Math.atan2(dy,dx)*180/Math.PI+360)%360, s=dist/WR;
+  wsel.style.left=((WR+dx)/230*100)+'%'; wsel.style.top=((WR+dy)/230*100)+'%';
+  wsel.style.background='rgb('+hsv2rgb(hh,s,1).map(v=>Math.round(v*255)).join(',')+')';
+  applyColor(hsv2rgb(hh,1,1), s);
+}
+function placeWheel(rgb,sat){
+  const ang=rgb2hsv(rgb)[0]*Math.PI/180, dist=(sat||0)*WR;
+  wsel.style.left=((WR+Math.cos(ang)*dist)/230*100)+'%'; wsel.style.top=((WR+Math.sin(ang)*dist)/230*100)+'%';
+  wsel.style.background=rgbCss(hsv2rgb(rgb2hsv(rgb)[0],sat||0,1));
+}
+let wdrag=false;
+function wMove(e){ if(wdrag){ e.preventDefault(); wheelPick(e); } }
+function wUp(){ wdrag=false; window.removeEventListener('pointermove',wMove); window.removeEventListener('pointerup',wUp); }
+wheel.addEventListener('pointerdown',e=>{ e.preventDefault(); wdrag=true; wheelPick(e); window.addEventListener('pointermove',wMove); window.addEventListener('pointerup',wUp); });
+wheel.addEventListener('dragstart',e=>e.preventDefault());
+
+// ---- COLOR MATH ----
+function hsv2rgb(h,s,v){h/=60;const c=v*s,x=c*(1-Math.abs(h%2-1)),m=v-c;let r,g,b;
+  if(h<1)[r,g,b]=[c,x,0];else if(h<2)[r,g,b]=[x,c,0];else if(h<3)[r,g,b]=[0,c,x];
+  else if(h<4)[r,g,b]=[0,x,c];else if(h<5)[r,g,b]=[x,0,c];else[r,g,b]=[c,0,x];
+  return [r+m,g+m,b+m];}
+function rgb2hsv(rgb){const[r,g,b]=rgb,mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;
+  let h=0;if(d){if(mx===r)h=((g-b)/d)%6;else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4;h*=60;if(h<0)h+=360;}
+  return[h,mx?d/mx:0,mx];}
+function cct2rgb(t){ // 0 warm -> .5 neutral white -> 1 cool
+  const warm=[1,.78,.50], neu=[1,.97,.92], cool=[.80,.90,1];
+  if(t<.5){const k=t/.5;return warm.map((w,i)=>w+(neu[i]-w)*k);}
+  const k=(t-.5)/.5;return neu.map((n,i)=>n+(cool[i]-n)*k);
+}
+
+// ---- SCENES ----
+const SCENES=[
+ {name:'All Off',icon:'○',color:'#4a4a4a',apply:()=>set(l=>({on:false,level:0}))},
+ // Bright neutral white, productive — midday
+ {name:'Focus',icon:'☀',color:'#e9edf2',day:.95,
+   apply:()=>set(l=>({on:true,mode:'white',cct:.5,level:.98}))},
+ // Meeting: neutral white, main room at 65%, conference table kept up
+ {name:'Meet',icon:'▣',color:'#cfd6dd',day:.4,
+   apply:()=>set(l=>({on:true,mode:'white',cct:.5,
+     level: l.grp==='conf'?.95:.65}))},
+ // Colored dusk, outdoor at 50%, conference OFF, mains dimmed to 40%
+ {name:'Sunset',icon:'◐',color:'#d85f22',day:.5,
+   apply:()=>set(l=>{ if(l.grp==='conf') return {on:false,level:0};
+     return {on:true,mode:'color',sat:.45,level:.4,
+       rgb: l.grp==='down'?[1,.28,.04] : [1,.55,.2]}; })},
+ // Deep, moody violet at low level — linears kept at full
+ {name:'Relax',icon:'☯',color:'#8f4fd6',day:.08,
+   apply:()=>set(l=>({on:true,mode:'color',sat:.375,
+     level: l.grp==='lin'?1:.3,
+     rgb: l.grp==='conf'?[.85,.28,1] : [.58,.2,.98]}))},
+ // Vivid neon tri-color at night — ANIMATED (groups cycle purple/magenta/blue)
+ {name:'Color Pop',icon:'✷',color:'#ec149b',day:0,anim:true,
+   apply:()=>set(l=>({on:true,mode:'color',sat:1,level:.95,
+     rgb: l.grp==='down'?[.05,.4,1] : l.grp==='conf'?[.55,.1,1] : [1,0,.65]}))}
+];
+let activeScene=-1;
+// ---- COLOR POP ANIMATION (Casambi-style) ----
+let animTimer=null;
+const POP_PALETTE=[[1,0,.65],[.55,.1,1],[.05,.4,1]]; // magenta -> purple -> blue
+function popLerp(a,b,t){return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];}
+function popColor(t,phase){ const N=POP_PALETTE.length; let p=((((t+phase)%1)+1)%1)*N;
+  const i=Math.floor(p), f=p-i; return popLerp(POP_PALETTE[i%N],POP_PALETTE[(i+1)%N],f); }
+function stopAnim(){ if(animTimer){clearInterval(animTimer);animTimer=null;}
+  const stg=document.getElementById('stage'); if(stg) stg.classList.remove('anim'); }
+function animFrame(){ const t=performance.now()/8000, phase={lin:0,down:0.34,conf:0.67};
+  LUMS.forEach(l=>{ const rgb=popColor(t,phase[l.grp]), lev=.95; const s=st[l.id];
+    s.rgb=rgb; s.mode='color'; s.sat=1; s.on=true; s.level=lev;
+    // write layer opacities directly — skip full render()/paintTiles for efficiency
+    setL(l.id+'R',lev*rgb[0]); setL(l.id+'G',lev*rgb[1]); setL(l.id+'B',lev*rgb[2]); setL(l.id+'W',0); });
+}
+function startColorPopAnim(){ stopAnim();
+  document.getElementById('stage').classList.add('anim'); // slower CSS crossfade during anim
+  animFrame(); // paint one vivid multi-colour frame regardless
+  // honour reduced-motion (and spare low-power devices): keep it static, no loop
+  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  // slow tick (~4fps): colour drift is gradual, and fewer recomposites keeps the CPU/GPU cool
+  animTimer=setInterval(()=>{ if(!document.hidden) animFrame(); }, 240);
+}
+document.addEventListener('visibilitychange',()=>{ if(document.hidden) return; if(animTimer) animFrame(); });
+function set(fn){ LUMS.forEach(l=>{const s=fn(l)||{}; st[l.id]={on:true,level:.5,mode:'white',rgb:[1,0,0],sat:1,cct:.5, ...s}; }); }
+function buildScenes(){
+  const g=document.getElementById('scenegrid'); g.innerHTML='';
+  SCENES.forEach((sc,i)=>{
+    const el=document.createElement('div'); el.className='scene';
+    el.innerHTML='<div class="sc" style="background:'+sc.color+'">'+sc.icon+'</div><div class="lbl">'+sc.name+'</div>';
+    el.onclick=()=>{stopAnim();
+      const stg=document.getElementById('stage');
+      if(!sc.anim){ stg.classList.add('xfade'); clearTimeout(stg._xf); stg._xf=setTimeout(()=>stg.classList.remove('xfade'),700); }
+      sc.apply();
+      if(sc.day!=null){ daylight=sc.day; const d=document.getElementById('day'); if(d) d.value=Math.round(sc.day*100); }
+      activeScene=i;render();
+      if(sc.anim) startColorPopAnim();
+      document.querySelectorAll('.scene').forEach((s,j)=>s.classList.toggle('on',j===i));};
+    g.appendChild(el);
+  });
+}
+
+// ---- TABS ----
+function showTab(t){
+  ['lum','gal','scn','set'].forEach(x=>document.getElementById('pane-'+x).style.display=x===t?'block':'none');
+  document.querySelectorAll('.tab').forEach(tb=>tb.classList.toggle('on',tb.dataset.t===t));
+  document.getElementById('nettitle').textContent = t==='set'?'Settings': t==='gal'?'Gallery': t==='scn'?'Scenes':'AD&M Office';
+  document.getElementById('tr').style.visibility = (t==='lum'||t==='gal'||t==='scn')?'visible':'hidden';
+  if(t!=='lum') sheet.classList.remove('show');
+  if(t==='lum') paintTiles();
+}
+
+// ---- DAYLIGHT ----
+document.getElementById('day').oninput=e=>{daylight=e.target.value/100;render();};
+
+// ---- INIT ----
+// ---- LEARNING TOUR ----
+const LEARN=[
+ {t:"Welcome to the live Office",b:"This is a photorealistic Casambi visualization. Anything you change in the app on the right updates the room in real time — no hardware required."},
+ {t:"Control any luminaire or group",b:"On the Luminaires tab, every circle is a fixture or a group (All, Linear Lights, Downlights, Conference). Tap one to open its controls."},
+ {t:"Color, white & brightness",b:"Drag the color wheel to set any color, switch to White to tune warm↔cool, and use Brightness to dim. Groups change all their members at once."},
+ {t:"Recall a scene instantly",b:"The Scenes tab holds saved looks — Focus, Meet, Sunset, Relax, Color Pop. Tap one to set the whole room in a single touch."},
+ {t:"Set the time of day",b:"Use the Daylight slider at the lower-left of the room to move from bright daylight to dusk — see how the lighting reads at any hour."},
+ {t:"Bring it to life",b:"Love what you built? Tap “Talk to a Rep” up top and we’ll connect you with a Casambi expert to make it real in your space."}
+];
+let lstep=0;
+function showLearn(){ lstep=0; renderLearn(); document.getElementById('learnov').classList.add('show'); }
+function closeLearn(){ document.getElementById('learnov').classList.remove('show'); }
+function learnGo(d){ lstep+=d; if(lstep<0)lstep=0; if(lstep>=LEARN.length){closeLearn();return;} renderLearn(); }
+function renderLearn(){ const s=LEARN[lstep];
+  document.getElementById('l-step').textContent='Step '+(lstep+1)+' of '+LEARN.length;
+  document.getElementById('l-title').textContent=s.t; document.getElementById('l-body').textContent=s.b;
+  document.getElementById('l-prev').style.visibility=lstep===0?'hidden':'visible';
+  document.getElementById('l-next').textContent=lstep===LEARN.length-1?'Done':'Next';
+  document.getElementById('l-dots').innerHTML=LEARN.map((_,i)=>'<i class="'+(i===lstep?'on':'')+'"></i>').join(''); }
+
+buildGrid(); buildScenes(); markSel();
+base.addEventListener('load',()=>{ try{document.getElementById('galthumb').style.background='url(assets/office_full2/base.jpg?v=20260707) center/cover';}catch(e){} });
+render();
+</script>
+<div class="learnov" id="learnov">
+  <div class="learncard">
+    <span class="lx" onclick="closeLearn()">&times;</span>
+    <span class="step" id="l-step">Step 1 of 6</span>
+    <h3 id="l-title"></h3>
+    <p id="l-body"></p>
+    <div class="nav">
+      <div class="dots" id="l-dots"></div>
+      <div class="btns"><button class="lb ghost" id="l-prev" onclick="learnGo(-1)">Back</button>
+        <button class="lb prim" id="l-next" onclick="learnGo(1)">Next</button></div>
+    </div>
+  </div>
+</div>
+<!-- ==========================================================================
+     CASAMBI VISUALIZER - TRAINING MODE v2 (spotlight tutorials)
+     Retargeted for the LIVE office.html build (Vercel).
+
+     INSTALL: paste this ENTIRE block immediately before <!-- d:ige2tc -->
+</body> in
+     office.html. Nothing else changes. The existing "Learn" nav button is
+     automatically rewired to open the lesson menu (the old 6-step centered
+     tour code stays in the file, harmlessly unused). Delete this block to
+     restore the original behavior exactly.
+
+     Lessons: Meet the Visualizer / Save a Scene / Create a Schedule /
+              Daylight & Sensors
+     Selectors and copy live in the LESSONS object below - the only place
+     you should ever need to edit.
+     ========================================================================== -->
+
+<style>
+/* patch: sheet fully hides even when its content is tall */
+.sheet:not(.show){visibility:hidden;transition:transform .28s cubic-bezier(.3,.9,.3,1),visibility 0s .3s;}
+#tut2{position:fixed;inset:0;z-index:9000;display:none;font-family:inherit;}
+#tut2.on{display:block;}
+#tut2-block{position:absolute;inset:0;z-index:9001;}
+
+/* spotlight = hole punched in a scrim via giant box-shadow */
+#tut2-spot{position:fixed;z-index:9002;border-radius:14px;
+  box-shadow:0 0 0 9999px rgba(8,8,10,.74);
+  transition:all .45s cubic-bezier(.4,0,.2,1);pointer-events:none;}
+#tut2-ring{position:fixed;z-index:9003;border-radius:16px;border:2px solid #E86524;
+  transition:all .45s cubic-bezier(.4,0,.2,1);pointer-events:none;
+  animation:tut2-pulse 1.7s ease-in-out infinite;}
+@keyframes tut2-pulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(232,101,36,.55);}
+  50%    {box-shadow:0 0 0 8px rgba(232,101,36,0);}
+}
+#tut2-tap{position:fixed;z-index:9004;width:36px;height:36px;margin:-18px 0 0 -18px;
+  border-radius:50%;background:rgba(255,255,255,.9);pointer-events:none;opacity:0;}
+#tut2-tap.go{animation:tut2-tap .95s ease-out infinite;}
+@keyframes tut2-tap{
+  0%  {opacity:0;transform:scale(.35);}
+  35% {opacity:.85;transform:scale(.85);}
+  100%{opacity:0;transform:scale(1.7);}
+}
+
+/* caption card */
+#tut2-card{position:fixed;z-index:9005;width:400px;max-width:calc(100vw - 28px);
+  background:#fff;color:#16161a;border-radius:18px;padding:18px 20px 14px;
+  box-shadow:0 22px 70px rgba(0,0,0,.55);
+  transition:top .45s cubic-bezier(.4,0,.2,1),left .45s cubic-bezier(.4,0,.2,1);}
+#tut2-eyebrow{display:flex;align-items:center;gap:7px;margin-bottom:7px;}
+#tut2-dot{width:7px;height:7px;border-radius:50%;background:#E86524;flex:0 0 7px;}
+#tut2-lesson{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#E86524;}
+#tut2-count{margin-left:auto;font-size:10.5px;font-weight:600;color:#8e8e93;}
+#tut2-title{font-size:17px;font-weight:800;line-height:1.25;margin-bottom:5px;}
+#tut2-body{font-size:13.5px;line-height:1.5;color:#4a4a52;}
+#tut2-bar{display:flex;align-items:center;gap:8px;margin-top:14px;}
+.tut2-btn{border:0;border-radius:18px;padding:9px 17px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+.tut2-next{background:#E86524;color:#fff;margin-left:auto;}
+.tut2-next:active{background:#c9541c;}
+.tut2-back{background:#ececed;color:#3a3a3c;}
+.tut2-skip{background:none;color:#8e8e93;padding:9px 4px;}
+#tut2-prog{height:3px;border-radius:2px;background:#ececed;margin-top:12px;}
+#tut2-progfill{height:100%;border-radius:2px;background:#E86524;transition:width .35s ease;width:0;}
+#tut2-card.done #tut2-title{color:#1c7a3e;}
+
+/* lesson menu */
+#tut2-menu{position:fixed;inset:0;z-index:9100;display:none;align-items:center;justify-content:center;
+  background:rgba(8,8,10,.72);backdrop-filter:blur(3px);font-family:inherit;}
+#tut2-menu.on{display:flex;}
+#tut2-menucard{background:#fff;color:#16161a;width:440px;max-width:94vw;border-radius:20px;
+  padding:26px 24px 20px;box-shadow:0 30px 90px rgba(0,0,0,.6);position:relative;}
+#tut2-menucard h3{font-size:20px;font-weight:800;margin:0 0 4px;}
+#tut2-menucard .sub{font-size:13px;color:#77777e;margin-bottom:16px;}
+#tut2-mx{position:absolute;top:16px;right:18px;color:#aaa;cursor:pointer;font-size:20px;line-height:1;background:none;border:none;font-family:inherit;}
+.tut2-item{display:flex;align-items:center;gap:13px;padding:12px 10px;border-radius:13px;cursor:pointer;}
+.tut2-item:hover{background:#f5f5f7;}
+.tut2-icn{width:38px;height:38px;border-radius:50%;background:#fdf0e8;display:flex;align-items:center;justify-content:center;flex:0 0 38px;font-size:17px;color:#E86524;}
+.tut2-nm{font-size:14.5px;font-weight:700;line-height:1.2;}
+.tut2-sub{font-size:11.5px;color:#8e8e93;margin-top:2px;}
+</style>
+
+<div id="tut2">
+  <div id="tut2-block"></div>
+  <div id="tut2-spot"></div>
+  <div id="tut2-ring"></div>
+  <div id="tut2-tap"></div>
+  <div id="tut2-card">
+    <div id="tut2-eyebrow">
+      <span id="tut2-dot"></span>
+      <span id="tut2-lesson">Training</span>
+      <span id="tut2-count">1 / 5</span>
+    </div>
+    <div id="tut2-title">Title</div>
+    <div id="tut2-body">Body</div>
+    <div id="tut2-bar">
+      <button class="tut2-btn tut2-skip" onclick="TUT2.stop()">Exit</button>
+      <button class="tut2-btn tut2-back" id="tut2-back" onclick="TUT2.back()">Back</button>
+      <button class="tut2-btn tut2-next" id="tut2-next" onclick="TUT2.next()">Next</button>
+    </div>
+    <div id="tut2-prog"><div id="tut2-progfill"></div></div>
+  </div>
+</div>
+
+<div id="tut2-menu">
+  <div id="tut2-menucard">
+    <button id="tut2-mx" onclick="TUT2.closeMenu()">&#x2715;</button>
+    <h3>Learn the Casambi app</h3>
+    <div class="sub">Guided, hands-on lessons on the live room. Pick one:</div>
+    <div class="tut2-item" onclick="TUT2.start('tour')">
+      <div class="tut2-icn">&#9737;</div>
+      <div><div class="tut2-nm">Meet the Visualizer</div><div class="tut2-sub">Two minutes, the whole interface</div></div>
+    </div>
+    <div class="tut2-item" onclick="TUT2.start('scene')">
+      <div class="tut2-icn">&#9635;</div>
+      <div><div class="tut2-nm">Build &amp; Save a Scene</div><div class="tut2-sub">Capture the room, recall it in one tap</div></div>
+    </div>
+    <div class="tut2-item" onclick="TUT2.start('schedule')">
+      <div class="tut2-icn">&#9711;</div>
+      <div><div class="tut2-nm">Create a Schedule</div><div class="tut2-sub">Make the lights run the day by themselves</div></div>
+    </div>
+    <div class="tut2-item" onclick="TUT2.start('sensor')">
+      <div class="tut2-icn">&#9788;</div>
+      <div><div class="tut2-nm">Daylight &amp; Sensors</div><div class="tut2-sub">Automatic dimming, real energy savings</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---- safe wrappers around the page's own functions ---- */
+function safeTab(t){ try{ if(typeof showTab==="function") showTab(t); }catch(e){} }
+function closeSheet(){ try{ var s=document.getElementById("sheet"); if(s) s.classList.remove("show"); }catch(e){} }
+function openTile(n){
+  try{
+    var t=document.querySelectorAll("#lumgrid .tile")[n||0];
+    if(t) t.click();
+  }catch(e){}
+}
+function whiteMode(){ try{ if(typeof setMode==="function") setMode("white"); }catch(e){} }
+
+/* --------------------------------------------------------------------------
+   LESSONS - the only block you should ever edit.
+   sel    : CSS selector to spotlight (page-wide - room, phone, nav, all fine)
+   pre    : runs before the step paints (switch tabs, open sheet, etc.)
+   center : true = no spotlight, centered narration card
+   pad    : extra px around the target
+   -------------------------------------------------------------------------- */
+
+var LESSONS={
+
+ tour:{ name:"Meet the Visualizer", steps:[
+  { center:true,
+    title:"Welcome to the live Office",
+    body:"Everything you see is a real Casambi control surface driving a photorealistic room. Change anything in the app on the right and the room answers instantly - no hardware required." },
+  { sel:"#lumgrid", pad:8, pre:function(){ safeTab("lum"); closeSheet(); },
+    title:"Luminaires and groups",
+    body:"Every circle is a fixture or a group - All Luminaires, Linear Lights, Downlights, Conference. Tap one to open its controls." },
+  { sel:"#sheet", pad:8, pre:function(){ safeTab("lum"); openTile(1); },
+    title:"Color, white and brightness",
+    body:"Drag the wheel for any color, switch to White for warm-to-cool tuning, and dim with Brightness. A group changes all of its members at once." },
+  { sel:".tab[data-t='scn']", pad:6, pre:function(){ closeSheet(); },
+    title:"Scenes",
+    body:"Whole-room looks in one tap. Try Sunset or Color Pop - watch every zone move together." },
+  { sel:".daycard", pad:8, pre:function(){ safeTab("scn"); },
+    title:"Time of day",
+    body:"The Daylight slider takes the room from noon to night. Notice how the same lighting design reads completely differently at dusk - this is what a static rendering can never show." },
+  { done:true,
+    title:"That is the whole interface",
+    body:"Now try the deeper lessons - build a scene, put the room on a schedule, or see daylight harvesting work. When you love what you have built, tap Talk to a Rep." }
+ ]},
+
+ scene:{ name:"Build & Save a Scene", steps:[
+  { sel:".tab[data-t='lum']", pad:6, pre:function(){ safeTab("lum"); closeSheet(); },
+    title:"A scene starts with the room",
+    body:"A Scene is a snapshot of how the room looks right now. So first, set the room the way you want it - starting from the Luminaires tab." },
+  { sel:"#lumgrid .tile:nth-child(2)", pad:6,
+    title:"Pick a group or fixture",
+    body:"Tap a circle to open its controls. Working by group is fastest - set the Linear Lights once instead of three fixtures separately." },
+  { sel:"#dim", pad:10, pre:function(){ openTile(1); },
+    title:"Set the level",
+    body:"Drag Brightness to where you want it. Whatever you leave here is exactly what the scene will remember." },
+  { sel:"#cct", pad:10, pre:function(){ whiteMode(); },
+    title:"Tune the white",
+    body:"Warm for evening, cool for focus. Color, temperature and level are all captured together." },
+  { sel:".tab[data-t='scn']", pad:6, pre:function(){ closeSheet(); },
+    title:"Go to Scenes",
+    body:"With the room set, open the Scenes tab." },
+  { sel:"#scenegrid", pad:8, pre:function(){ safeTab("scn"); },
+    title:"One tap recalls everything",
+    body:"These are saved scenes - Focus, Meet, Sunset, Relax, Color Pop. In the real Casambi app you would tap Add scene here, name it, and your room state joins this grid." },
+  { done:true,
+    title:"Scenes are where Casambi starts paying off",
+    body:"Most people never get past toggling individual lights. Scenes turn a room full of fixtures into a single intention - and they are what schedules and switches call on." }
+ ]},
+
+ schedule:{ name:"Create a Schedule", steps:[
+  { sel:".tab[data-t='set']", pad:6, pre:function(){ closeSheet(); safeTab("set"); },
+    title:"Open Settings",
+    body:"Schedules live here - the feature almost nobody finds, and the one that makes the building run itself." },
+  { sel:"#pane-set .srow:first-child", pad:6,
+    title:"Calendar and schedules",
+    body:"Open Schedules, then tap the plus to create a new one." },
+  { center:true,
+    title:"Choose the trigger",
+    body:"A schedule fires at a time of day - or at sunrise or sunset for the building's actual location, drifting with the seasons automatically." },
+  { center:true,
+    title:"Point it at a scene",
+    body:"At 07:00 run Focus. At 18:00 run Sunset. At 22:00 run All Off. The scenes you built become the building's daily routine." },
+  { sel:".tlcard", pad:8,
+    title:"Watch it execute",
+    body:"Press Play on the Schedule card and watch the programmed day run - opening bright, daylight harvesting at noon, warming toward evening, cleaning crew, then security minimum. This is the part a client normally cannot see until the system is installed." },
+  { done:true,
+    title:"The building runs itself",
+    body:"Layered schedules handle opening, closing, cleaning crews and security minimums without anyone touching a phone. That is what the system is actually being bought for." }
+ ]},
+
+ sensor:{ name:"Daylight & Sensors", steps:[
+  { sel:".tab[data-t='set']", pad:6, pre:function(){ closeSheet(); safeTab("set"); },
+    title:"Open Settings",
+    body:"Sensors are paired here once, then assigned to the luminaires they should influence. This network has ten." },
+  { sel:"#pane-set .srow:nth-child(3)", pad:6,
+    title:"Select a daylight sensor",
+    body:"It reports the light level it is actually reading in the space, in real time." },
+  { center:true,
+    title:"Assign it and set a target",
+    body:"Point the sensor at the fixtures nearest the windows and tell it the level to hold on the desks. As daylight rises the fixtures dim; as it falls they come back up." },
+  { sel:".daycard", pad:8,
+    title:"See it work",
+    body:"Slide Daylight up and down and imagine the linears responding - holding a constant level on the desks while burning the minimum energy to do it." },
+  { done:true,
+    title:"This is the energy argument",
+    body:"Daylight harvesting is invisible in a static rendering and hard to explain in words. Here, it is a slider. That is the point of this whole tool." }
+ ]}
+};
+
+/* -------------------------------------------------------------------------- */
+
+var L=null,i=0,paintSeq=0;
+function el(id){ return document.getElementById(id); }
+
+function paint(){
+  var s=L.steps[i];
+  var spot=el("tut2-spot"),ring=el("tut2-ring"),tap=el("tut2-tap"),card=el("tut2-card");
+
+  el("tut2-lesson").textContent=L.name;
+  el("tut2-count").textContent=(i+1)+" / "+L.steps.length;
+  el("tut2-title").textContent=s.title;
+  el("tut2-body").textContent=s.body;
+  card.className=s.done?"done":"";
+  el("tut2-progfill").style.width=Math.round(((i+1)/L.steps.length)*100)+"%";
+  el("tut2-back").style.visibility=i===0?"hidden":"visible";
+  el("tut2-next").textContent=(s.done||i===L.steps.length-1)?"Finish":"Next";
+
+  if(s.pre){ try{ s.pre(); }catch(e){} }
+
+  var tgt=(!s.center&&!s.done&&s.sel)?document.querySelector(s.sel):null;
+
+  if(!tgt){
+    spot.style.width="0px";spot.style.height="0px";
+    spot.style.left="50vw";spot.style.top="50vh";
+    ring.style.opacity="0";tap.className="";
+    card.style.left="calc(50vw - "+Math.min(200,window.innerWidth/2-14)+"px)";
+    card.style.top=Math.max(20,(window.innerHeight-card.offsetHeight)/2)+"px";
+    return;
+  }
+
+  /* track the target until its rect stops moving (sheet slide, tab swap, etc.) */
+  var tries=0,last=null,my=++paintSeq;
+  function place(){
+    if(my!==paintSeq) return;                 /* a newer step took over */
+    var r=tgt.getBoundingClientRect();
+    if(r.width<2||r.height<2){                /* hidden target: center card */
+      spot.style.width="0px";spot.style.height="0px";
+      spot.style.left="50vw";spot.style.top="50vh";
+      ring.style.opacity="0";tap.className="";
+      card.style.left="calc(50vw - "+Math.min(200,window.innerWidth/2-14)+"px)";
+      card.style.top=Math.max(20,(window.innerHeight-card.offsetHeight)/2)+"px";
+      if(tries<20){tries++;setTimeout(place,120);}  /* keep waiting for it */
+      return;
+    }
+    var pad=s.pad||6;
+    var x=r.left-pad,y=r.top-pad,w=r.width+pad*2,h=r.height+pad*2;
+
+    spot.style.left=x+"px";spot.style.top=y+"px";
+    spot.style.width=w+"px";spot.style.height=h+"px";
+    ring.style.opacity="1";
+    ring.style.left=(x-2)+"px";ring.style.top=(y-2)+"px";
+    ring.style.width=(w+4)+"px";ring.style.height=(h+4)+"px";
+    tap.style.left=(x+w/2)+"px";tap.style.top=(y+h/2)+"px";
+    tap.className="go";
+
+    var cw=card.offsetWidth||400,ch=card.offsetHeight||190;
+    var cx=Math.min(Math.max(14,x+w/2-cw/2),window.innerWidth-cw-14);
+    var cy=(y+h+18+ch<window.innerHeight)?(y+h+18):Math.max(14,y-ch-18);
+    card.style.left=cx+"px";card.style.top=cy+"px";
+
+    var moved=!last||Math.abs(last.top-r.top)>0.5||Math.abs(last.left-r.left)>0.5
+              ||Math.abs(last.height-r.height)>0.5;
+    last=r;tries++;
+    if((moved&&tries<30)||tries<6) setTimeout(place,80);   /* follow until settled, ~0.5s min, 2.4s max */
+  }
+  setTimeout(place,50);
+}
+
+window.TUT2={
+  menu:function(){ el("tut2-menu").className="on"; },
+  closeMenu:function(){ el("tut2-menu").className=""; },
+  start:function(k){
+    L=LESSONS[k]; if(!L) return;
+    i=0;
+    el("tut2-menu").className="";
+    el("tut2").className="on";
+    paint();
+  },
+  next:function(){ if(i<L.steps.length-1){ i++; paint(); } else TUT2.stop(); },
+  back:function(){ if(i>0){ i--; paint(); } },
+  stop:function(){
+    el("tut2").className="";
+    closeSheet();
+    safeTab("lum");
+  }
+};
+
+/* rewire the existing Learn nav button to the new lesson menu */
+window.showLearn=function(){ TUT2.menu(); };
+
+document.addEventListener("keydown",function(e){
+  if(el("tut2").className==="on"){
+    if(e.key==="ArrowRight")TUT2.next();
+    if(e.key==="ArrowLeft")TUT2.back();
+    if(e.key==="Escape")TUT2.stop();
+  } else if(el("tut2-menu").className==="on"&&e.key==="Escape"){
+    TUT2.closeMenu();
+  }
+});
+
+/* re-measure the spotlight on resize so it tracks the target */
+window.addEventListener("resize",function(){
+  if(el("tut2").className==="on") paint();
+});
+
+})();
+</script>
+
+<!-- ==========================================================================
+     CASAMBI VISUALIZER - 24-HOUR TIMELAPSE (schedule playback)
+     For the LIVE office.html build. Paste this ENTIRE block immediately
+     before <!-- d:ige2tc -->
+</body> (before or after the Training Mode block - order does
+     not matter). Touches nothing else; delete to revert.
+
+     What it does: replaces the Daylight card's single slider with a
+     scrubbable 24-hour clock plus Play. Scrubbing or playing moves the
+     room through a programmed day - the same SCENES the demo already has,
+     fired at scheduled times, with daylight interpolated between keyframes.
+     This is what a Casambi schedule DOES, made visible.
+
+     Edit the DAYPLAN below to change the programming. Times are 24h floats
+     (13.5 = 1:30 PM). "scene" must match a name in SCENES exactly, or use
+     zones:{} overrides for custom states like the cleaning crew.
+     ========================================================================== -->
+
+<style>
+.tlcard{width:372px;background:linear-gradient(180deg,#26262b,#1e1e22);border-radius:20px;
+  padding:14px 20px 16px;box-shadow:0 14px 40px rgba(0,0,0,.5),0 0 0 1px #2b2b2e;
+  font-family:inherit;}
+.tlhead{display:flex;align-items:baseline;gap:9px;margin-bottom:4px;}
+.tlhead b{font-size:15px;font-weight:700;color:#fff;}
+.tlhead .tlsub{font-size:10.5px;font-weight:600;color:#E86524;text-transform:uppercase;letter-spacing:.08em;}
+.tlnow{margin-left:auto;font-size:13px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;}
+.tlevent{font-size:11px;color:#9a9aa2;height:15px;margin-bottom:7px;}
+.tlrow{display:flex;align-items:center;gap:11px;}
+.tlplay{width:34px;height:34px;border-radius:50%;border:none;background:#E86524;color:#fff;
+  font-size:13px;cursor:pointer;flex:0 0 34px;display:flex;align-items:center;justify-content:center;
+  padding:0;line-height:1;}
+.tlplay:active{background:#c9541c;}
+.tltrackwrap{flex:1;position:relative;padding-top:8px;}
+#tl-scrub{width:100%;-webkit-appearance:none;appearance:none;height:26px;border-radius:13px;
+  outline:none;cursor:pointer;
+  background:linear-gradient(90deg,
+    #10131f 0%, #10131f 20%,          /* night til ~5am */
+    #2c3f66 27%, #c9b98a 33%,          /* dawn */
+    #e8ddc2 45%, #efe7d2 58%,          /* day */
+    #d99a5b 78%, #43335c 86%,          /* dusk */
+    #10131f 93%, #10131f 100%);}       /* night */
+#tl-scrub::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;
+  background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.5);border:2px solid #E86524;}
+#tl-scrub::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#fff;
+  box-shadow:0 1px 6px rgba(0,0,0,.5);border:2px solid #E86524;}
+.tlmarks{position:absolute;left:0;right:0;top:0;height:7px;pointer-events:none;}
+.tlmark{position:absolute;top:0;width:2px;height:6px;background:#E86524;border-radius:1px;
+  transform:translateX(-1px);opacity:.85;}
+.tlhours{display:flex;justify-content:space-between;font-size:9px;color:#6a6a72;margin-top:5px;
+  font-variant-numeric:tabular-nums;}
+</style>
+
+<script>
+(function(){
+"use strict";
+
+/* --------------------------------------------------------------------------
+   THE PROGRAMMED DAY - edit freely.
+   Each entry fires when the clock crosses its time (scrubbing either
+   direction lands on the latest entry at or before the current time).
+   scene: name from SCENES  |  zones: custom per-group override
+   day:   ambient level 0-1 at that moment (interpolated between entries)
+   label: what the event line shows
+   -------------------------------------------------------------------------- */
+var DAYPLAN=[
+ {t:0.0,  day:0.02, label:"Security minimum",        scene:"Security"},
+ {t:6.5,  day:0.25, label:"Sunrise - schedule wakes the room", scene:"Focus", sceneLevelScale:.55},
+ {t:8.0,  day:0.75, label:"Open - Focus scene",       scene:"Focus"},
+ {t:12.0, day:0.95, label:"Midday - Harvest scene dims the linears", scene:"Harvest"},
+ {t:14.0, day:0.85, label:"Afternoon - Meet scene in the conference area", scene:"Meet"},
+ {t:17.5, day:0.5,  label:"Golden hour - Sunset scene", scene:"Sunset"},
+ {t:19.5, day:0.15, label:"Evening - Relax scene",     scene:"Relax"},
+ {t:21.0, day:0.04, label:"Cleaning crew - full light, Focus levels", scene:"Cleaning"},
+ {t:22.5, day:0.02, label:"Security minimum", scene:"Security"}
+];
+
+var SPEED=2.5;          /* hours of day-time per real second when playing */
+var TICK=50;            /* ms per tick */
+
+/* -------------------------------------------------------------------------- */
+
+var clock=8.0, playing=false, timer=null, lastIdx=-1;
+
+function fmt(h){
+  var hh=Math.floor(h)%24, mm=Math.floor((h-Math.floor(h))*60);
+  var ap=hh>=12?"PM":"AM"; var h12=hh%12; if(h12===0)h12=12;
+  return h12+":"+(mm<10?"0":"")+mm+" "+ap;
+}
+
+function planIndexAt(t){
+  var idx=DAYPLAN.length-1;                       /* wraps from midnight */
+  for(var k=0;k<DAYPLAN.length;k++){ if(DAYPLAN[k].t<=t) idx=k; }
+  return idx;
+}
+
+function ambientAt(t){
+  /* linear interpolation of day: between surrounding entries (wrapping) */
+  var a=planIndexAt(t), b=(a+1)%DAYPLAN.length;
+  var t0=DAYPLAN[a].t, t1=DAYPLAN[b].t; if(t1<=t0) t1+=24;
+  var tt=t; if(tt<t0) tt+=24;
+  var f=(t1===t0)?0:(tt-t0)/(t1-t0);
+  return DAYPLAN[a].day+(DAYPLAN[b].day-DAYPLAN[a].day)*Math.min(1,Math.max(0,f));
+}
+
+function applyEntry(e){
+  try{
+    if(typeof stopAnim==="function") stopAnim();
+    if(e.scene){
+      var sc=SCENES.find(function(s){return s.name===e.scene;});
+      if(sc){ sc.apply();
+        if(e.sceneLevelScale){ LUMS.forEach(function(l){ st[l.id].level*=e.sceneLevelScale; }); }
+        if(sc.anim && typeof startColorPopAnim==="function") startColorPopAnim();
+      }
+    } else if(e.zones){
+      LUMS.forEach(function(l){
+        var z=e.zones[l.grp]; if(!z) return;
+        var s=st[l.id];
+        s.on=z.on; s.level=z.level;
+        if(z.mode){ s.mode=z.mode; }
+        if(z.cct!=null){ s.cct=z.cct; }
+        if(z.rgb){ s.rgb=z.rgb.slice(); }
+      });
+    }
+  }catch(err){}
+}
+
+function setClock(t,force){
+  clock=((t%24)+24)%24;
+  var idx=planIndexAt(clock);
+  if(idx!==lastIdx||force){ lastIdx=idx; applyEntry(DAYPLAN[idx]);
+    document.getElementById("tl-event").textContent=DAYPLAN[idx].label; }
+  /* ambient: drive the page's daylight variable + hidden slider for consistency */
+  try{
+    daylight=ambientAt(clock);
+    var d=document.getElementById("day"); if(d) d.value=Math.round(daylight*100);
+    render();
+  }catch(err){}
+  document.getElementById("tl-now").textContent=fmt(clock);
+  document.getElementById("tl-scrub").value=Math.round(clock*100);
+}
+
+function play(on){
+  playing=(on==null)?!playing:on;
+  document.getElementById("tl-play").innerHTML=playing?"&#9646;&#9646;":"&#9654;";
+  clearInterval(timer);
+  if(playing){ timer=setInterval(function(){ setClock(clock+SPEED*TICK/1000); },TICK); }
+}
+
+function build(){
+  var dc=document.querySelector(".daycard");
+  if(!dc){ setTimeout(build,300); return; }
+
+  var card=document.createElement("div");
+  card.className="tlcard";
+  card.innerHTML=
+    '<div class="tlhead"><b>Schedule</b><span class="tlsub">24-hour playback</span><span class="tlnow" id="tl-now">8:00 AM</span></div>'+
+    '<div class="tlevent" id="tl-event"></div>'+
+    '<div class="tlrow">'+
+      '<button class="tlplay" id="tl-play" title="Play the day">&#9654;</button>'+
+      '<div class="tltrackwrap">'+
+        '<div class="tlmarks" id="tl-marks"></div>'+
+        '<input type="range" id="tl-scrub" min="0" max="2400" value="800">'+
+      '</div>'+
+    '</div>'+
+    '<div class="tlhours"><span>12A</span><span>6A</span><span>12P</span><span>6P</span><span>12A</span></div>';
+
+  /* swap in place of the daycard; keep daycard alive but hidden so #day
+     still exists for scenes and the training module */
+  dc.parentNode.insertBefore(card,dc);
+  card.style.marginBottom="12px";           /* Daylight card stays below */
+
+  var mk=document.getElementById("tl-marks");
+  DAYPLAN.forEach(function(e){
+    var m=document.createElement("div"); m.className="tlmark";
+    m.style.left=(e.t/24*100)+"%"; m.title=fmt(e.t)+" - "+e.label;
+    mk.appendChild(m);
+  });
+
+  document.getElementById("tl-play").onclick=function(){ play(); };
+  var sc=document.getElementById("tl-scrub");
+  sc.oninput=function(){ play(false); setClock(this.value/100); };
+
+  setClock(8.0,true);
+
+  /* add the schedule's states as real scenes in the app */
+  try{
+    /* EDIT HERE: the downlights that stay on overnight (stairs + window line).
+       Toggle individual Down tiles in the app to identify which numbers
+       sit where, then adjust this list. Down N = element_N.               */
+    var SECURITY_IDS=["element_1","element_2","element_3","element_4"];
+
+    SCENES.push(
+      {name:"Security",icon:"\u263D",color:"#1b2540",day:.02,
+       apply:function(){ set(function(l){
+         return SECURITY_IDS.indexOf(l.id)>=0
+           ?{on:true,mode:"white",cct:.5,level:.5}
+           :{on:false,level:0}; }); }},
+      {name:"Harvest",icon:"\u25D1",color:"#efe7d2",day:.95,
+       apply:function(){ set(function(l){
+         if(l.grp==="lin")  return {on:true,mode:"white",cct:.5,level:.35};
+         if(l.grp==="down") return {on:true,mode:"white",cct:.5,level:.85};
+         return {on:true,mode:"white",cct:.5,level:.9}; }); }},
+      {name:"Cleaning",icon:"\u2726",color:"#e9edf2",day:.04,
+       apply:function(){ set(function(l){
+         return {on:true,mode:"white",cct:.5,level:.98}; }); }}
+    );
+    buildScenes();
+  }catch(err){}
+}
+
+if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",build);
+else build();
+
+})();
+</script>
+
+<!-- d:ige2tc -->
+</body>
+</html>
