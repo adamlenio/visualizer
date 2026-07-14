@@ -586,6 +586,8 @@ render();
      ========================================================================== -->
 
 <style>
+/* patch: sheet fully hides even when its content is tall */
+.sheet:not(.show){visibility:hidden;transition:transform .28s cubic-bezier(.3,.9,.3,1),visibility 0s .3s;}
 #tut2{position:fixed;inset:0;z-index:9000;display:none;font-family:inherit;}
 #tut2.on{display:block;}
 #tut2-block{position:absolute;inset:0;z-index:9001;}
@@ -700,9 +702,9 @@ render();
 /* ---- safe wrappers around the page's own functions ---- */
 function safeTab(t){ try{ if(typeof showTab==="function") showTab(t); }catch(e){} }
 function closeSheet(){ try{ var s=document.getElementById("sheet"); if(s) s.classList.remove("show"); }catch(e){} }
-function openFirstTile(){
+function openTile(n){
   try{
-    var t=document.querySelector("#lumgrid .tile");
+    var t=document.querySelectorAll("#lumgrid .tile")[n||0];
     if(t) t.click();
   }catch(e){}
 }
@@ -725,7 +727,7 @@ var LESSONS={
   { sel:"#lumgrid", pad:8, pre:function(){ safeTab("lum"); closeSheet(); },
     title:"Luminaires and groups",
     body:"Every circle is a fixture or a group - All Luminaires, Linear Lights, Downlights, Conference. Tap one to open its controls." },
-  { sel:"#sheet", pad:8, pre:function(){ safeTab("lum"); openFirstTile(); },
+  { sel:"#sheet", pad:8, pre:function(){ safeTab("lum"); openTile(1); },
     title:"Color, white and brightness",
     body:"Drag the wheel for any color, switch to White for warm-to-cool tuning, and dim with Brightness. A group changes all of its members at once." },
   { sel:".tab[data-t='scn']", pad:6, pre:function(){ closeSheet(); },
@@ -743,10 +745,10 @@ var LESSONS={
   { sel:".tab[data-t='lum']", pad:6, pre:function(){ safeTab("lum"); closeSheet(); },
     title:"A scene starts with the room",
     body:"A Scene is a snapshot of how the room looks right now. So first, set the room the way you want it - starting from the Luminaires tab." },
-  { sel:"#lumgrid .tile", pad:6,
+  { sel:"#lumgrid .tile:nth-child(2)", pad:6,
     title:"Pick a group or fixture",
     body:"Tap a circle to open its controls. Working by group is fastest - set the Linear Lights once instead of three fixtures separately." },
-  { sel:"#dim", pad:10, pre:function(){ openFirstTile(); },
+  { sel:"#dim", pad:10, pre:function(){ openTile(1); },
     title:"Set the level",
     body:"Drag Brightness to where you want it. Whatever you leave here is exactly what the scene will remember." },
   { sel:"#cct", pad:10, pre:function(){ whiteMode(); },
@@ -776,9 +778,9 @@ var LESSONS={
   { center:true,
     title:"Point it at a scene",
     body:"At 07:00 run Focus. At 18:00 run Sunset. At 22:00 run All Off. The scenes you built become the building's daily routine." },
-  { sel:".daycard", pad:8,
+  { sel:".tlcard", pad:8,
     title:"Watch it execute",
-    body:"Drag the Daylight slider through the day and picture your schedule firing - opening bright, warming toward evening, going dark after close. This is the part a client normally cannot see until the system is installed." },
+    body:"Press Play on the Schedule card and watch the programmed day run - opening bright, daylight harvesting at noon, warming toward evening, cleaning crew, then security minimum. This is the part a client normally cannot see until the system is installed." },
   { done:true,
     title:"The building runs itself",
     body:"Layered schedules handle opening, closing, cleaning crews and security minimums without anyone touching a phone. That is what the system is actually being bought for." }
@@ -839,6 +841,15 @@ function paint(){
   function place(){
     if(my!==paintSeq) return;                 /* a newer step took over */
     var r=tgt.getBoundingClientRect();
+    if(r.width<2||r.height<2){                /* hidden target: center card */
+      spot.style.width="0px";spot.style.height="0px";
+      spot.style.left="50vw";spot.style.top="50vh";
+      ring.style.opacity="0";tap.className="";
+      card.style.left="calc(50vw - "+Math.min(200,window.innerWidth/2-14)+"px)";
+      card.style.top=Math.max(20,(window.innerHeight-card.offsetHeight)/2)+"px";
+      if(tries<20){tries++;setTimeout(place,120);}  /* keep waiting for it */
+      return;
+    }
     var pad=s.pad||6;
     var x=r.left-pad,y=r.top-pad,w=r.width+pad*2,h=r.height+pad*2;
 
@@ -967,18 +978,15 @@ window.addEventListener("resize",function(){
    label: what the event line shows
    -------------------------------------------------------------------------- */
 var DAYPLAN=[
- {t:0.0,  day:0.02, label:"Security minimum",        zones:{lin:{on:true,level:.12,mode:"white",cct:.5}, down:{on:false,level:0}, conf:{on:false,level:0}}},
+ {t:0.0,  day:0.02, label:"Security minimum",        scene:"Security"},
  {t:6.5,  day:0.25, label:"Sunrise - schedule wakes the room", scene:"Focus", sceneLevelScale:.55},
  {t:8.0,  day:0.75, label:"Open - Focus scene",       scene:"Focus"},
- {t:12.0, day:0.95, label:"Midday - daylight harvesting dims the linears",
-          zones:{lin:{on:true,level:.35,mode:"white",cct:.5}, down:{on:true,level:.85,mode:"white",cct:.5}, conf:{on:true,level:.9,mode:"white",cct:.5}}},
+ {t:12.0, day:0.95, label:"Midday - Harvest scene dims the linears", scene:"Harvest"},
  {t:14.0, day:0.85, label:"Afternoon - Meet scene in the conference area", scene:"Meet"},
  {t:17.5, day:0.5,  label:"Golden hour - Sunset scene", scene:"Sunset"},
  {t:19.5, day:0.15, label:"Evening - Relax scene",     scene:"Relax"},
- {t:21.0, day:0.04, label:"Cleaning crew - bright, cool, task only",
-          zones:{lin:{on:true,level:1,mode:"white",cct:.85}, down:{on:true,level:.9,mode:"white",cct:.85}, conf:{on:false,level:0}}},
- {t:22.5, day:0.02, label:"Security minimum",
-          zones:{lin:{on:true,level:.12,mode:"white",cct:.5}, down:{on:false,level:0}, conf:{on:false,level:0}}}
+ {t:21.0, day:0.04, label:"Cleaning crew - Cleaning scene", scene:"Cleaning"},
+ {t:22.5, day:0.02, label:"Security minimum", scene:"Security"}
 ];
 
 var SPEED=2.5;          /* hours of day-time per real second when playing */
@@ -1074,7 +1082,7 @@ function build(){
   /* swap in place of the daycard; keep daycard alive but hidden so #day
      still exists for scenes and the training module */
   dc.parentNode.insertBefore(card,dc);
-  dc.style.display="none";
+  card.style.marginBottom="12px";           /* Daylight card stays below */
 
   var mk=document.getElementById("tl-marks");
   DAYPLAN.forEach(function(e){
@@ -1088,6 +1096,26 @@ function build(){
   sc.oninput=function(){ play(false); setClock(this.value/100); };
 
   setClock(8.0,true);
+
+  /* add the schedule's states as real scenes in the app */
+  try{
+    SCENES.push(
+      {name:"Security",icon:"\u263D",color:"#1b2540",day:.02,
+       apply:function(){ set(function(l){ return l.grp==="lin"
+         ?{on:true,mode:"white",cct:.5,level:.12}:{on:false,level:0}; }); }},
+      {name:"Harvest",icon:"\u25D1",color:"#efe7d2",day:.95,
+       apply:function(){ set(function(l){
+         if(l.grp==="lin")  return {on:true,mode:"white",cct:.5,level:.35};
+         if(l.grp==="down") return {on:true,mode:"white",cct:.5,level:.85};
+         return {on:true,mode:"white",cct:.5,level:.9}; }); }},
+      {name:"Cleaning",icon:"\u2726",color:"#9fb7c9",day:.04,
+       apply:function(){ set(function(l){
+         if(l.grp==="conf") return {on:false,level:0};
+         if(l.grp==="lin")  return {on:true,mode:"white",cct:.85,level:1};
+         return {on:true,mode:"white",cct:.85,level:.9}; }); }}
+    );
+    buildScenes();
+  }catch(err){}
 }
 
 if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",build);
