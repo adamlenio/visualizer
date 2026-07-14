@@ -805,7 +805,7 @@ var LESSONS={
 
 /* -------------------------------------------------------------------------- */
 
-var L=null,i=0;
+var L=null,i=0,paintSeq=0;
 function el(id){ return document.getElementById(id); }
 
 function paint(){
@@ -834,8 +834,10 @@ function paint(){
     return;
   }
 
-  /* give pre() DOM changes a beat to land, then measure */
-  setTimeout(function(){
+  /* track the target until its rect stops moving (sheet slide, tab swap, etc.) */
+  var tries=0,last=null,my=++paintSeq;
+  function place(){
+    if(my!==paintSeq) return;                 /* a newer step took over */
     var r=tgt.getBoundingClientRect();
     var pad=s.pad||6;
     var x=r.left-pad,y=r.top-pad,w=r.width+pad*2,h=r.height+pad*2;
@@ -848,12 +850,17 @@ function paint(){
     tap.style.left=(x+w/2)+"px";tap.style.top=(y+h/2)+"px";
     tap.className="go";
 
-    /* card placement: below target if room, else above; clamp horizontally */
     var cw=card.offsetWidth||400,ch=card.offsetHeight||190;
     var cx=Math.min(Math.max(14,x+w/2-cw/2),window.innerWidth-cw-14);
     var cy=(y+h+18+ch<window.innerHeight)?(y+h+18):Math.max(14,y-ch-18);
     card.style.left=cx+"px";card.style.top=cy+"px";
-  },60);
+
+    var moved=!last||Math.abs(last.top-r.top)>0.5||Math.abs(last.left-r.left)>0.5
+              ||Math.abs(last.height-r.height)>0.5;
+    last=r;tries++;
+    if((moved&&tries<30)||tries<6) setTimeout(place,80);   /* follow until settled, ~0.5s min, 2.4s max */
+  }
+  setTimeout(place,50);
 }
 
 window.TUT2={
@@ -892,6 +899,199 @@ document.addEventListener("keydown",function(e){
 window.addEventListener("resize",function(){
   if(el("tut2").className==="on") paint();
 });
+
+})();
+</script>
+
+<!-- ==========================================================================
+     CASAMBI VISUALIZER - 24-HOUR TIMELAPSE (schedule playback)
+     For the LIVE office.html build. Paste this ENTIRE block immediately
+     before </body> (before or after the Training Mode block - order does
+     not matter). Touches nothing else; delete to revert.
+
+     What it does: replaces the Daylight card's single slider with a
+     scrubbable 24-hour clock plus Play. Scrubbing or playing moves the
+     room through a programmed day - the same SCENES the demo already has,
+     fired at scheduled times, with daylight interpolated between keyframes.
+     This is what a Casambi schedule DOES, made visible.
+
+     Edit the DAYPLAN below to change the programming. Times are 24h floats
+     (13.5 = 1:30 PM). "scene" must match a name in SCENES exactly, or use
+     zones:{} overrides for custom states like the cleaning crew.
+     ========================================================================== -->
+
+<style>
+.tlcard{width:372px;background:linear-gradient(180deg,#26262b,#1e1e22);border-radius:20px;
+  padding:14px 20px 16px;box-shadow:0 14px 40px rgba(0,0,0,.5),0 0 0 1px #2b2b2e;
+  font-family:inherit;}
+.tlhead{display:flex;align-items:baseline;gap:9px;margin-bottom:4px;}
+.tlhead b{font-size:15px;font-weight:700;color:#fff;}
+.tlhead .tlsub{font-size:10.5px;font-weight:600;color:#E86524;text-transform:uppercase;letter-spacing:.08em;}
+.tlnow{margin-left:auto;font-size:13px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;}
+.tlevent{font-size:11px;color:#9a9aa2;height:15px;margin-bottom:7px;}
+.tlrow{display:flex;align-items:center;gap:11px;}
+.tlplay{width:34px;height:34px;border-radius:50%;border:none;background:#E86524;color:#fff;
+  font-size:13px;cursor:pointer;flex:0 0 34px;display:flex;align-items:center;justify-content:center;
+  padding:0;line-height:1;}
+.tlplay:active{background:#c9541c;}
+.tltrackwrap{flex:1;position:relative;padding-top:8px;}
+#tl-scrub{width:100%;-webkit-appearance:none;appearance:none;height:26px;border-radius:13px;
+  outline:none;cursor:pointer;
+  background:linear-gradient(90deg,
+    #10131f 0%, #10131f 20%,          /* night til ~5am */
+    #2c3f66 27%, #c9b98a 33%,          /* dawn */
+    #e8ddc2 45%, #efe7d2 58%,          /* day */
+    #d99a5b 78%, #43335c 86%,          /* dusk */
+    #10131f 93%, #10131f 100%);}       /* night */
+#tl-scrub::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;
+  background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.5);border:2px solid #E86524;}
+#tl-scrub::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#fff;
+  box-shadow:0 1px 6px rgba(0,0,0,.5);border:2px solid #E86524;}
+.tlmarks{position:absolute;left:0;right:0;top:0;height:7px;pointer-events:none;}
+.tlmark{position:absolute;top:0;width:2px;height:6px;background:#E86524;border-radius:1px;
+  transform:translateX(-1px);opacity:.85;}
+.tlhours{display:flex;justify-content:space-between;font-size:9px;color:#6a6a72;margin-top:5px;
+  font-variant-numeric:tabular-nums;}
+</style>
+
+<script>
+(function(){
+"use strict";
+
+/* --------------------------------------------------------------------------
+   THE PROGRAMMED DAY - edit freely.
+   Each entry fires when the clock crosses its time (scrubbing either
+   direction lands on the latest entry at or before the current time).
+   scene: name from SCENES  |  zones: custom per-group override
+   day:   ambient level 0-1 at that moment (interpolated between entries)
+   label: what the event line shows
+   -------------------------------------------------------------------------- */
+var DAYPLAN=[
+ {t:0.0,  day:0.02, label:"Security minimum",        zones:{lin:{on:true,level:.12,mode:"white",cct:.5}, down:{on:false,level:0}, conf:{on:false,level:0}}},
+ {t:6.5,  day:0.25, label:"Sunrise - schedule wakes the room", scene:"Focus", sceneLevelScale:.55},
+ {t:8.0,  day:0.75, label:"Open - Focus scene",       scene:"Focus"},
+ {t:12.0, day:0.95, label:"Midday - daylight harvesting dims the linears",
+          zones:{lin:{on:true,level:.35,mode:"white",cct:.5}, down:{on:true,level:.85,mode:"white",cct:.5}, conf:{on:true,level:.9,mode:"white",cct:.5}}},
+ {t:14.0, day:0.85, label:"Afternoon - Meet scene in the conference area", scene:"Meet"},
+ {t:17.5, day:0.5,  label:"Golden hour - Sunset scene", scene:"Sunset"},
+ {t:19.5, day:0.15, label:"Evening - Relax scene",     scene:"Relax"},
+ {t:21.0, day:0.04, label:"Cleaning crew - bright, cool, task only",
+          zones:{lin:{on:true,level:1,mode:"white",cct:.85}, down:{on:true,level:.9,mode:"white",cct:.85}, conf:{on:false,level:0}}},
+ {t:22.5, day:0.02, label:"Security minimum",
+          zones:{lin:{on:true,level:.12,mode:"white",cct:.5}, down:{on:false,level:0}, conf:{on:false,level:0}}}
+];
+
+var SPEED=2.5;          /* hours of day-time per real second when playing */
+var TICK=50;            /* ms per tick */
+
+/* -------------------------------------------------------------------------- */
+
+var clock=8.0, playing=false, timer=null, lastIdx=-1;
+
+function fmt(h){
+  var hh=Math.floor(h)%24, mm=Math.floor((h-Math.floor(h))*60);
+  var ap=hh>=12?"PM":"AM"; var h12=hh%12; if(h12===0)h12=12;
+  return h12+":"+(mm<10?"0":"")+mm+" "+ap;
+}
+
+function planIndexAt(t){
+  var idx=DAYPLAN.length-1;                       /* wraps from midnight */
+  for(var k=0;k<DAYPLAN.length;k++){ if(DAYPLAN[k].t<=t) idx=k; }
+  return idx;
+}
+
+function ambientAt(t){
+  /* linear interpolation of day: between surrounding entries (wrapping) */
+  var a=planIndexAt(t), b=(a+1)%DAYPLAN.length;
+  var t0=DAYPLAN[a].t, t1=DAYPLAN[b].t; if(t1<=t0) t1+=24;
+  var tt=t; if(tt<t0) tt+=24;
+  var f=(t1===t0)?0:(tt-t0)/(t1-t0);
+  return DAYPLAN[a].day+(DAYPLAN[b].day-DAYPLAN[a].day)*Math.min(1,Math.max(0,f));
+}
+
+function applyEntry(e){
+  try{
+    if(typeof stopAnim==="function") stopAnim();
+    if(e.scene){
+      var sc=SCENES.find(function(s){return s.name===e.scene;});
+      if(sc){ sc.apply();
+        if(e.sceneLevelScale){ LUMS.forEach(function(l){ st[l.id].level*=e.sceneLevelScale; }); }
+        if(sc.anim && typeof startColorPopAnim==="function") startColorPopAnim();
+      }
+    } else if(e.zones){
+      LUMS.forEach(function(l){
+        var z=e.zones[l.grp]; if(!z) return;
+        var s=st[l.id];
+        s.on=z.on; s.level=z.level;
+        if(z.mode){ s.mode=z.mode; }
+        if(z.cct!=null){ s.cct=z.cct; }
+        if(z.rgb){ s.rgb=z.rgb.slice(); }
+      });
+    }
+  }catch(err){}
+}
+
+function setClock(t,force){
+  clock=((t%24)+24)%24;
+  var idx=planIndexAt(clock);
+  if(idx!==lastIdx||force){ lastIdx=idx; applyEntry(DAYPLAN[idx]);
+    document.getElementById("tl-event").textContent=DAYPLAN[idx].label; }
+  /* ambient: drive the page's daylight variable + hidden slider for consistency */
+  try{
+    daylight=ambientAt(clock);
+    var d=document.getElementById("day"); if(d) d.value=Math.round(daylight*100);
+    render();
+  }catch(err){}
+  document.getElementById("tl-now").textContent=fmt(clock);
+  document.getElementById("tl-scrub").value=Math.round(clock*100);
+}
+
+function play(on){
+  playing=(on==null)?!playing:on;
+  document.getElementById("tl-play").innerHTML=playing?"&#9646;&#9646;":"&#9654;";
+  clearInterval(timer);
+  if(playing){ timer=setInterval(function(){ setClock(clock+SPEED*TICK/1000); },TICK); }
+}
+
+function build(){
+  var dc=document.querySelector(".daycard");
+  if(!dc){ setTimeout(build,300); return; }
+
+  var card=document.createElement("div");
+  card.className="tlcard";
+  card.innerHTML=
+    '<div class="tlhead"><b>Schedule</b><span class="tlsub">24-hour playback</span><span class="tlnow" id="tl-now">8:00 AM</span></div>'+
+    '<div class="tlevent" id="tl-event"></div>'+
+    '<div class="tlrow">'+
+      '<button class="tlplay" id="tl-play" title="Play the day">&#9654;</button>'+
+      '<div class="tltrackwrap">'+
+        '<div class="tlmarks" id="tl-marks"></div>'+
+        '<input type="range" id="tl-scrub" min="0" max="2400" value="800">'+
+      '</div>'+
+    '</div>'+
+    '<div class="tlhours"><span>12A</span><span>6A</span><span>12P</span><span>6P</span><span>12A</span></div>';
+
+  /* swap in place of the daycard; keep daycard alive but hidden so #day
+     still exists for scenes and the training module */
+  dc.parentNode.insertBefore(card,dc);
+  dc.style.display="none";
+
+  var mk=document.getElementById("tl-marks");
+  DAYPLAN.forEach(function(e){
+    var m=document.createElement("div"); m.className="tlmark";
+    m.style.left=(e.t/24*100)+"%"; m.title=fmt(e.t)+" - "+e.label;
+    mk.appendChild(m);
+  });
+
+  document.getElementById("tl-play").onclick=function(){ play(); };
+  var sc=document.getElementById("tl-scrub");
+  sc.oninput=function(){ play(false); setClock(this.value/100); };
+
+  setClock(8.0,true);
+}
+
+if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",build);
+else build();
 
 })();
 </script>
